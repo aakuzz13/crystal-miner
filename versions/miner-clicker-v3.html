@@ -11,27 +11,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
   :root{
-    --wood-dark:#1c130d;
-    --wood-mid:#33241a;
-    --wood-light:#4d3826;
-    --parchment:#d8c69c;
-    --parchment-dark:#b9a578;
-    --parchment-panel:#2a2018;
-    --ink:#241a12;
-    --ink-dim:#8c7a5e;
-    --blood:#6e1f1f;
-    --blood-bright:#9c3232;
-    --candle:#d99a4e;
-    --candle-bright:#f2bd72;
-    --common:#8a8478;    --common2:#c2bcae;
-    --rare:#3d6b84;      --rare2:#7fb0c9;
-    --epic:#6b3d84;      --epic2:#af7fc9;
-    --legendary:#a8792f; --legendary2:#e8bd68;
+    --wood-dark:#2b1810;
+    --wood-mid:#4a2f1c;
+    --wood-light:#7a4a26;
+    --parchment:#f0dfb0;
+    --parchment-dark:#dcc079;
+    --parchment-panel:#3a2818;
+    --ink:#2a1a0e;
+    --ink-dim:#9c7f4a;
+    --teal:#2a8a7a;
+    --teal-bright:#4fd6bd;
+    --blood:#b23a2e;
+    --blood-bright:#e0492f;
+    --candle:#f0932f;
+    --candle-bright:#ffb545;
+    --common:#7fae63;    --common2:#b8e08f;
+    --rare:#2f8fd4;      --rare2:#7fc4f2;
+    --epic:#a13fd4;      --epic2:#d98af2;
+    --legendary:#f0a92f; --legendary2:#ffd873;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
   html,body{
     margin:0; padding:0; height:100%; overflow:hidden;
-    background:radial-gradient(ellipse at 50% 0%, #322414, #17100a);
+    background:radial-gradient(ellipse at 50% 0%, #4a2f1c, #201108);
     transition:background 0.7s ease;
     font-family:'IM Fell English', Georgia, serif;
     color:var(--parchment);
@@ -156,11 +158,15 @@
   #rock-wrap.shatter #shatterFlash{ animation:shatterFlash .5s ease-out; }
   @keyframes shatterFlash{ 0%{opacity:0;} 12%{opacity:.9;} 100%{opacity:0;} }
 
-  /* PICKAXE */
+  /* PICKAXE — follows the mouse cursor on pointer:fine devices */
+  .pickaxe-cursor{
+    position:fixed; left:0; top:0; width:64px; height:64px;
+    margin-left:-8px; margin-top:-54px;
+    z-index:12; pointer-events:none; opacity:0; will-change:transform;
+  }
   #pickaxe{
-    position:absolute; width:44%; height:44%; right:-8%; top:2%;
+    width:100%; height:100%;
     transform-origin:22% 88%; transform:rotate(-14deg);
-    z-index:3; pointer-events:none;
     filter:drop-shadow(2px 3px 3px rgba(0,0,0,.6));
   }
   @keyframes pickaxeSwing{
@@ -171,6 +177,8 @@
     100%{ transform:rotate(-14deg); }
   }
   #pickaxe.swing{ animation:pickaxeSwing .4s cubic-bezier(.3,0,.2,1); }
+  .has-cursor-pickaxe main{ cursor:none; }
+  .has-cursor-pickaxe #rock-wrap{ cursor:none; }
 
   .float-num{
     position:absolute; font-size:1.25rem; font-weight:bold; color:var(--candle-bright);
@@ -188,17 +196,23 @@
   .oa2{ right:22%; top:56%; }
   .rockpile-decor{ position:absolute; width:34px; height:30px; left:50%; bottom:-4%; transform:translateX(-50%); image-rendering:pixelated; opacity:.8; z-index:0; pointer-events:none; }
 
-  /* CHEST */
-  #chest{
-    position:absolute; width:52px; height:44px; z-index:9; cursor:pointer;
-    right:8%; bottom:4%; filter:drop-shadow(2px 3px 3px rgba(0,0,0,.6));
-    animation:chestBob 1.6s ease-in-out infinite;
+  /* CHEST — big, centered, auto-opening event */
+  #chest-backdrop{
+    position:fixed; inset:0; z-index:63; pointer-events:none;
+    background:rgba(8,5,3,0); transition:background .35s ease;
   }
+  #chest-backdrop.show{ background:rgba(8,5,3,.6); }
+  #chest{
+    position:fixed; inset:0; margin:auto; width:190px; height:162px; z-index:65; cursor:pointer;
+    filter:drop-shadow(0 8px 18px rgba(0,0,0,.7));
+    animation:chestBob .7s ease-in-out infinite;
+  }
+  .has-cursor-pickaxe #chest{ cursor:none; }
   #chest.hidden{ display:none; }
   #chest.opening{ animation:none; pointer-events:none; }
   #chest.opening #chestLidGroup{ animation:chestLidOpen .35s ease-in forwards; }
   #chest.opening{ animation:chestVanish .45s ease-in .3s forwards; }
-  @keyframes chestBob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+  @keyframes chestBob{ 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-14px) scale(1.03);} }
   @keyframes chestLidOpen{ 0%{transform:rotate(0deg);} 100%{transform:rotate(-70deg);} }
   @keyframes chestVanish{ 0%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(0.6) translateY(-10px);} }
 
@@ -285,6 +299,10 @@
   .loc-progress-fill{ height:100%; background:linear-gradient(90deg,var(--r),var(--r2)); box-shadow:0 0 8px color-mix(in srgb, var(--r2) 60%, transparent); transition:width .3s ease; }
 
   .miner-sprite{ width:20px; height:20px; image-rendering:pixelated; vertical-align:middle; }
+
+  .card-rolls{ font-size:0.68rem; color:color-mix(in srgb, var(--ink) 65%, transparent); margin-top:2px; position:relative; z-index:1; }
+  .card.locked .card-icon{ filter:grayscale(1) brightness(.75); }
+  .card.locked .card-name{ color:color-mix(in srgb, var(--ink) 55%, transparent); font-style:italic; }
 
   /* GACHA MODAL */
   #gacha-overlay{
@@ -421,6 +439,11 @@
         </g>
         <circle id="shatterFlash" cx="100" cy="100" r="95" fill="var(--accent2)" opacity="0"/>
       </svg>
+      <img class="ore-accent oa1" id="oreAccent1" alt="" onerror="this.style.display='none'">
+      <img class="ore-accent oa2" id="oreAccent2" alt="" onerror="this.style.display='none'">
+      <img class="rockpile-decor" id="rockpileDecor" alt="">
+    </div>
+    <div id="pickaxeCursor" class="pickaxe-cursor">
       <svg id="pickaxe" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="handleGrad" x1="0" y1="0" x2="1" y2="0">
@@ -435,10 +458,8 @@
         <rect x="42" y="30" width="10" height="64" rx="2" fill="url(#handleGrad)" stroke="#150e08" stroke-width="2"/>
         <path d="M8,30 Q46,4 90,28 L82,44 Q46,26 16,46 Z" fill="url(#headGrad)" stroke="#12100e" stroke-width="3" stroke-linejoin="round"/>
       </svg>
-      <img class="ore-accent oa1" id="oreAccent1" alt="" onerror="this.style.display='none'">
-      <img class="ore-accent oa2" id="oreAccent2" alt="" onerror="this.style.display='none'">
-      <img class="rockpile-decor" id="rockpileDecor" alt="">
     </div>
+    <div id="chest-backdrop"></div>
     <div id="chest" class="hidden">
       <svg viewBox="0 0 40 34" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -540,31 +561,33 @@ const SOUNDS = {
     resources: 0,
     totalEarned: 0,
     clickLevel: 0,
-    shopCounts: [0,0,0,0],
     gachaMiners: [],
     currentLocation: 0,
     muted: false,
   };
 
-  // ---------- STATIC DATA (economy unchanged from v2) ----------
+  // ---------- STATIC DATA ----------
+  // clickUpgrade keeps v2's resource-purchase economy (costFor/baseCost/costMult).
+  // autoDefs' `rate` is still the base economy value gacha rolls are ±20% of —
+  // but miners are no longer directly purchasable, so baseCost/costMult were dropped.
   const clickUpgrade = {
     name:"Верная кирка", icon:"⛏", baseCost:15, costMult:1.15, baseValue:1,
     flavor:"Растёт вместе с тобой, будто вросла в руку"
   };
 
   const autoDefs = [
-    { name:"Ученик рудокоп",   icon:"🧑‍🔧", baseCost:25,   costMult:1.16, rate:0.3, rarity:"common",    flavor:"Ещё вчера боялся темноты" },
-    { name:"Кирка-автомат",    icon:"🤖",   baseCost:150,  costMult:1.17, rate:2,   rarity:"rare",      flavor:"Ковка забытых мастеров" },
-    { name:"Буровая установка",icon:"🛠",   baseCost:900,  costMult:1.18, rate:9,   rarity:"epic",      flavor:"Пробивает камень будто плоть" },
-    { name:"Древний голем",    icon:"🗿",   baseCost:5000, costMult:1.2,  rate:40,  rarity:"legendary", flavor:"Спит тысячу лет между ударами" },
+    { name:"Ученик рудокоп",   icon:"🧑‍🔧", rate:0.3, rarity:"common",    flavor:"Ещё вчера боялся темноты" },
+    { name:"Кирка-автомат",    icon:"🤖",   rate:2,   rarity:"rare",      flavor:"Ковка забытых мастеров" },
+    { name:"Буровая установка",icon:"🛠",   rate:9,   rarity:"epic",      flavor:"Пробивает камень будто плоть" },
+    { name:"Древний голем",    icon:"🗿",   rate:40,  rarity:"legendary", flavor:"Спит тысячу лет между ударами" },
   ];
 
   const LOCATIONS = [
-    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       bg:["#2e2118","#160f0a"], accent:"#7c6a9c", accent2:"#a99bc4", rockBase:"#362c2a", rockDeep:"#1c1614", ore:"ore_purple" },
-    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    bg:["#39291a","#1c130c"], accent:"#a8823f", accent2:"#d4ac6a", rockBase:"#3f3323", rockDeep:"#201a12", ore:"ore_gold" },
-    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   bg:["#1c2e30","#0e1618"], accent:"#5f8a94", accent2:"#a8ccd0", rockBase:"#2c3a3d", rockDeep:"#161e20", ore:"ore_silver" },
-    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  bg:["#331c10","#190e08"], accent:"#9c4a34", accent2:"#d47a52", rockBase:"#3d2620", rockDeep:"#1e1310", ore:"ore_orange" },
-    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, bg:["#1e1a2e","#0e0c16"], accent:"#6a5a94", accent2:"#a89bc9", rockBase:"#262038", rockDeep:"#14101d", ore:"ore_green" },
+    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       bg:["#4a3a2e","#1e140c"], accent:"#9a7fc9", accent2:"#c4aef2", rockBase:"#453a56", rockDeep:"#241c30", ore:"ore_purple" },
+    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    bg:["#5c4322","#2a1c0c"], accent:"#e0a83f", accent2:"#ffd873", rockBase:"#4f3f22", rockDeep:"#2a2010", ore:"ore_gold" },
+    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   bg:["#204852","#0e2028"], accent:"#3fb4c9", accent2:"#8fe0f2", rockBase:"#264752", rockDeep:"#12262e", ore:"ore_silver" },
+    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  bg:["#5c2410","#2a0e06"], accent:"#e0552f", accent2:"#ff9a5c", rockBase:"#4a2818", rockDeep:"#26130a", ore:"ore_orange" },
+    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, bg:["#241e42","#0e0c20"], accent:"#8f6fe0", accent2:"#d4b8ff", rockBase:"#2c2448", rockDeep:"#161228", ore:"ore_green" },
   ];
 
   const RARITY = {
@@ -574,8 +597,11 @@ const SOUNDS = {
     legendary: { label:"Легендарная",seal:"♛" },
   };
 
+  // Miners are gacha-only now (no direct purchase), so the chest drop chance
+  // carries the whole acquisition curve — tuned generous enough that clicking
+  // (the core loop) reliably produces new miners even on a bad-luck streak.
   const GACHA_WEIGHTS = { common:60, rare:28, epic:10, legendary:2 };
-  const CHEST_DROP_CHANCE = 0.045;
+  const CHEST_DROP_CHANCE = 0.12;
   const STAT_ROLL_RANGE = 0.2; // ±20%
 
   function toolRarity(level){
@@ -591,7 +617,6 @@ const SOUNDS = {
       const raw = localStorage.getItem(SAVE_KEY);
       if(raw) state = Object.assign(state, JSON.parse(raw));
     }catch(e){}
-    if(!Array.isArray(state.shopCounts) || state.shopCounts.length!==4) state.shopCounts=[0,0,0,0];
     if(!Array.isArray(state.gachaMiners)) state.gachaMiners=[];
     if(!LOCATIONS[state.currentLocation] || state.totalEarned < LOCATIONS[state.currentLocation].unlockAt){
       state.currentLocation = 0;
@@ -606,17 +631,8 @@ const SOUNDS = {
   function clickPower(){ return (1 + state.clickLevel*clickUpgrade.baseValue) * locationBonusMult(); }
   function perSecond(){
     let total=0;
-    autoDefs.forEach((d,i)=> total += d.rate*state.shopCounts[i]);
     state.gachaMiners.forEach(m=> total += m.rate);
     return total * locationBonusMult();
-  }
-  function minerCountFor(i){
-    return state.shopCounts[i] + state.gachaMiners.filter(m=>m.defIndex===i).length;
-  }
-  function minerRateFor(i){
-    let t = autoDefs[i].rate*state.shopCounts[i];
-    state.gachaMiners.forEach(m=>{ if(m.defIndex===i) t += m.rate; });
-    return t;
   }
 
   function fmt(n){
@@ -760,6 +776,7 @@ const SOUNDS = {
     const n = parseInt(hex.replace('#',''),16);
     return [(n>>16)&255, (n>>8)&255, n&255];
   }
+  function hexToRgba(hex, a){ const [r,g,b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
   function lerpColor(c1,c2,t){ return [0,1,2].map(i=> Math.round(c1[i]+(c2[i]-c1[i])*t)); }
 
   const textureCache = {};
@@ -858,6 +875,8 @@ const SOUNDS = {
   const torchLeft = document.getElementById("torchLeft");
   const torchRight = document.getElementById("torchRight");
   const rockpileDecor = document.getElementById("rockpileDecor");
+  const pickaxeCursorEl = document.getElementById("pickaxeCursor");
+  const chestBackdropEl = document.getElementById("chest-backdrop");
   [torchLeft, torchRight, rockpileDecor].forEach(withImgFallback);
   torchLeft.src = SPRITES.torch_lit_a;
   torchRight.src = SPRITES.torch_lit_b;
@@ -865,6 +884,15 @@ const SOUNDS = {
   let activeTab = "click";
   let toastTimer = null;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pointerFine = window.matchMedia("(pointer: fine)").matches;
+  if(pointerFine){
+    document.body.classList.add("has-cursor-pickaxe");
+    mainEl.addEventListener("pointermove", (e)=>{
+      pickaxeCursorEl.style.opacity = "1";
+      pickaxeCursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    });
+    mainEl.addEventListener("pointerleave", ()=>{ pickaxeCursorEl.style.opacity = "0"; });
+  }
 
   function buildGrainTile(){
     const size=128;
@@ -893,7 +921,13 @@ const SOUNDS = {
     rockWrap.style.setProperty("--accent2", loc.accent2);
     rockWrap.style.setProperty("--rockBase", loc.rockBase);
     rockWrap.style.setProperty("--rockDeep", loc.rockDeep);
-    document.body.style.background = `radial-gradient(ellipse at 50% 0%, ${loc.bg[0]}, ${loc.bg[1]})`;
+    // reuse the same procedural texture generator at a larger, tiled size for
+    // the whole scene backdrop, layered under the vignette/candlelight glow
+    const sceneTexture = generateLocationTexture(loc, 320);
+    document.body.style.backgroundImage =
+      `radial-gradient(ellipse at 50% 0%, ${hexToRgba(loc.bg[0], 0.72)}, ${hexToRgba(loc.bg[1], 0.9)}), url(${sceneTexture})`;
+    document.body.style.backgroundRepeat = "no-repeat, repeat";
+    document.body.style.backgroundSize = "cover, 320px 320px";
     locLabelEl.textContent = "📍 " + loc.name;
     locTaglineEl.textContent = "«" + loc.tagline + "»";
     resourceIconEl.textContent = loc.icon;
@@ -1024,27 +1058,35 @@ const SOUNDS = {
     }));
   }
 
+  // Collection showcase — miners are gacha-only, so this tab has no buy
+  // buttons, just what you've found so far and locked slots for the rest.
+  function buildCollectionCard(def, owned){
+    const r = RARITY[def.rarity];
+    const found = owned.length > 0;
+    const totalRate = owned.reduce((s,m)=> s+m.rate, 0);
+    const div = document.createElement("div");
+    div.className = "card rarity-" + def.rarity + (found ? "" : " disabled locked");
+    const rollsText = found ? owned.map(m=> Math.round(m.rate/def.rate*100)+"%").join(", ") : "";
+    div.innerHTML = `
+      <div class="wax-seal">${r.seal}</div>
+      <div class="card-top">
+        <div class="card-icon">${found ? def.icon : "❔"}</div>
+        <div class="card-head">
+          <div class="card-name">${found ? def.name : "???"}</div>
+          <div class="card-rarity-label">${r.label}</div>
+        </div>
+      </div>
+      <div class="card-flavor">«${found ? def.flavor : "Ещё не попадался из сундуков"}»</div>
+      <div class="card-desc">${found
+        ? `Добыто: ${owned.length} (+${fmtPrecise(totalRate)} 💎/сек)`
+        : `🔒 Выпадает только из сундуков за удар киркой`}</div>
+      ${found ? `<div class="card-rolls">Роллы: ${rollsText}</div>` : ""}`;
+    return div;
+  }
   function renderAutoTab(){
     autoDefs.forEach((def,i)=>{
-      const shopLevel = state.shopCounts[i];
-      const cost = costFor(def.baseCost, def.costMult, shopLevel);
-      const totalCount = minerCountFor(i);
-      const totalRate = minerRateFor(i);
-      const gachaCount = state.gachaMiners.filter(m=>m.defIndex===i).length;
-      const gachaNote = gachaCount>0 ? `, из них ${gachaCount} из сундуков` : "";
-      panel.appendChild(buildMinerCard({
-        icon: def.icon, name: def.name, flavor: def.flavor,
-        desc: `В артели: ${totalCount} (+${fmtPrecise(totalRate)} 💎/сек)${gachaNote}`,
-        levelLabel: `Нанято: ${shopLevel}`, level: shopLevel, cost, canAfford: state.resources >= cost, rarity: def.rarity,
-        onBuy: (cardEl)=>{
-          if(state.resources >= cost){
-            state.resources -= cost; state.shopCounts[i]++;
-            playBuy(def.rarity);
-            celebrateBuy(cardEl, def.rarity);
-            save(); renderPanel(); updateHeader();
-          }
-        }
-      }));
+      const owned = state.gachaMiners.filter(m=>m.defIndex===i);
+      panel.appendChild(buildCollectionCard(def, owned));
     });
   }
 
@@ -1203,8 +1245,8 @@ const SOUNDS = {
   // ---------- PICKAXE SWING ----------
   const IMPACT_DELAY_MS = 175;
   function swingPickaxe(x,y){
-    if(reducedMotion){
-      const loc = LOCATIONS[state.currentLocation];
+    const loc = LOCATIONS[state.currentLocation];
+    if(reducedMotion || !pointerFine){
       spawnSparks(x,y); spawnDust(x,y, loc.accent2); playMiningHit();
       return;
     }
@@ -1212,7 +1254,6 @@ const SOUNDS = {
     void pickaxeEl.offsetWidth;
     pickaxeEl.classList.add("swing");
     setTimeout(()=>{
-      const loc = LOCATIONS[state.currentLocation];
       spawnSparks(x,y);
       spawnDust(x,y, loc.accent2);
       playMiningHit();
@@ -1220,19 +1261,26 @@ const SOUNDS = {
   }
 
   // ---------- CHEST + GACHA ----------
+  // The chest is a short automatic event, not a click target the player must
+  // find: it appears large and centered, bounces, then opens itself.
+  const CHEST_AUTO_OPEN_MS = 850;
   let chestPending = false;
+  let chestAutoTimer = null;
   function maybeDropChest(){
     if(chestPending) return;
     if(Math.random() < CHEST_DROP_CHANCE){
       chestPending = true;
       chestEl.classList.remove("hidden","opening");
+      chestBackdropEl.classList.add("show");
       playChestDrop();
+      chestAutoTimer = setTimeout(openChestNow, CHEST_AUTO_OPEN_MS);
     }
   }
-  chestEl.addEventListener("click", (e)=>{
-    e.stopPropagation();
+  function openChestNow(){
     if(!chestPending || chestEl.classList.contains("opening")) return;
+    clearTimeout(chestAutoTimer);
     chestEl.classList.add("opening");
+    chestBackdropEl.classList.remove("show");
     playChestOpen();
     setTimeout(playChestClose, 200);
     setTimeout(()=>{
@@ -1241,6 +1289,10 @@ const SOUNDS = {
       chestPending = false;
       openGachaFlow();
     }, 500);
+  }
+  chestEl.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    openChestNow();
   });
 
   function rollRarity(){
