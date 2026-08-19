@@ -1,6 +1,9 @@
 # Ассеты — источники и лицензии
 
-Все сторонние ассеты используются в `versions/miner-clicker-v3.html`.
+Все сторонние ассеты используются в `versions/miner-clicker-v3.html` — с редизайна
+под single-file (см. CLAUDE.md, "Updating v3's embedded assets") они зашиты прямо
+в HTML как base64 (`SPRITES`/`SOUNDS` в начале `<script>`), а файлы под `assets/`
+ниже остаются исходниками для справки/пересборки, а не тем, что грузится в браузере.
 
 ## Спрайты — `assets/sprites/`
 
