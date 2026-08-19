@@ -31,12 +31,18 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
   html,body{
     margin:0; padding:0; height:100%; overflow:hidden;
-    background:radial-gradient(ellipse at 50% 0%, #1a120c, #0a0705);
+    background:radial-gradient(ellipse at 50% 0%, #322414, #17100a);
     transition:background 0.7s ease;
     font-family:'IM Fell English', Georgia, serif;
     color:var(--parchment);
   }
   #app{ display:flex; flex-direction:column; height:100%; position:relative; }
+
+  /* warm candlelight pool centered on the scene, independent of location accent color */
+  main::before{
+    content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 50% 44%, rgba(235,185,115,.22) 0%, rgba(235,185,115,.09) 32%, transparent 62%);
+  }
 
   /* GRAIN + VIGNETTE */
   #grain{
@@ -47,7 +53,7 @@
   }
   #vignette{
     position:fixed; inset:0; z-index:59; pointer-events:none;
-    background:radial-gradient(ellipse at 50% 42%, transparent 38%, rgba(0,0,0,.35) 78%, rgba(0,0,0,.72) 100%);
+    background:radial-gradient(ellipse at 50% 42%, transparent 44%, rgba(0,0,0,.2) 78%, rgba(0,0,0,.42) 100%);
   }
 
   /* PORTAL TRANSITION OVERLAY */
@@ -78,7 +84,7 @@
   .torch-right{ right:54px; animation-delay:.6s; }
   @keyframes torchFlicker{ 0%,100%{opacity:.82; transform:scale(1);} 50%{opacity:1; transform:scale(1.06);} }
   .loc-label{ font-family:'Pirata One',Georgia,serif; font-weight:400; font-size:0.92rem; color:var(--parchment-dark); letter-spacing:0.6px; }
-  .loc-tagline{ font-family:'IM Fell English',serif; font-style:italic; font-size:0.7rem; color:var(--ink-dim); opacity:.9; margin-top:2px; }
+  .loc-tagline{ font-family:'IM Fell English',serif; font-style:italic; font-size:0.7rem; color:var(--parchment-dark); opacity:.85; margin-top:2px; }
   .resource-panel{
     display:inline-block; margin-top:8px; padding:7px 22px 9px; border-radius:4px;
     background:linear-gradient(160deg, rgba(255,220,160,.08), rgba(0,0,0,.3));
@@ -355,8 +361,8 @@
   <div id="toast"></div>
   <header>
     <button class="icon-btn" id="mute-btn" aria-label="Звук">🔊</button>
-    <img class="torch torch-left" src="../assets/sprites/torch_lit_a.png" alt="">
-    <img class="torch torch-right" src="../assets/sprites/torch_lit_b.png" alt="">
+    <img class="torch torch-left" src="../assets/sprites/torch_lit_a.png" alt="" onerror="this.style.display='none'">
+    <img class="torch torch-right" src="../assets/sprites/torch_lit_b.png" alt="" onerror="this.style.display='none'">
     <div class="loc-label" id="loc-label">📍 Пещера кристаллов</div>
     <div class="loc-tagline" id="loc-tagline">«Здесь всё начиналось»</div>
     <div class="resource-panel">
@@ -429,9 +435,9 @@
         <rect x="42" y="30" width="10" height="64" rx="2" fill="url(#handleGrad)" stroke="#150e08" stroke-width="2"/>
         <path d="M8,30 Q46,4 90,28 L82,44 Q46,26 16,46 Z" fill="url(#headGrad)" stroke="#12100e" stroke-width="3" stroke-linejoin="round"/>
       </svg>
-      <img class="ore-accent oa1" id="oreAccent1" src="" alt="">
-      <img class="ore-accent oa2" id="oreAccent2" src="" alt="">
-      <img class="rockpile-decor" src="../assets/sprites/rockpile_b.png" alt="">
+      <img class="ore-accent oa1" id="oreAccent1" alt="" onerror="this.style.display='none'">
+      <img class="ore-accent oa2" id="oreAccent2" alt="" onerror="this.style.display='none'">
+      <img class="rockpile-decor" src="../assets/sprites/rockpile_b.png" alt="" onerror="this.style.display='none'">
     </div>
     <div id="chest" class="hidden">
       <svg viewBox="0 0 40 34" xmlns="http://www.w3.org/2000/svg">
@@ -483,8 +489,16 @@
   "use strict";
 
   const SAVE_KEY = "crystal_mine_v3_save";
-  const ASSET_SPRITES = "../assets/sprites/";
-  const ASSET_SOUNDS = "../assets/sounds/";
+  // This file lives in versions/, assets/ is a sibling of versions/ at the repo root —
+  // change this single constant if the file ever moves relative to assets/.
+  const ASSET_BASE = "../assets/";
+  const ASSET_SPRITES = ASSET_BASE + "sprites/";
+  const ASSET_SOUNDS = ASSET_BASE + "sounds/";
+
+  function withImgFallback(img){
+    img.addEventListener("error", ()=>{ img.style.display = "none"; }, { once:true });
+    return img;
+  }
 
   let state = {
     resources: 0,
@@ -510,11 +524,11 @@
   ];
 
   const LOCATIONS = [
-    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       bg:["#1c1512","#0d0a08"], accent:"#7c6a9c", accent2:"#a99bc4", rockBase:"#362c2a", rockDeep:"#1c1614", ore:"ore_purple" },
-    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    bg:["#241c10","#120e08"], accent:"#a8823f", accent2:"#d4ac6a", rockBase:"#3f3323", rockDeep:"#201a12", ore:"ore_gold" },
-    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   bg:["#101c1e","#080e0f"], accent:"#5f8a94", accent2:"#a8ccd0", rockBase:"#2c3a3d", rockDeep:"#161e20", ore:"ore_silver" },
-    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  bg:["#1f1109","#100905"], accent:"#9c4a34", accent2:"#d47a52", rockBase:"#3d2620", rockDeep:"#1e1310", ore:"ore_orange" },
-    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, bg:["#12101c","#08070d"], accent:"#6a5a94", accent2:"#a89bc9", rockBase:"#262038", rockDeep:"#14101d", ore:"ore_green" },
+    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       bg:["#2e2118","#160f0a"], accent:"#7c6a9c", accent2:"#a99bc4", rockBase:"#362c2a", rockDeep:"#1c1614", ore:"ore_purple" },
+    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    bg:["#39291a","#1c130c"], accent:"#a8823f", accent2:"#d4ac6a", rockBase:"#3f3323", rockDeep:"#201a12", ore:"ore_gold" },
+    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   bg:["#1c2e30","#0e1618"], accent:"#5f8a94", accent2:"#a8ccd0", rockBase:"#2c3a3d", rockDeep:"#161e20", ore:"ore_silver" },
+    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  bg:["#331c10","#190e08"], accent:"#9c4a34", accent2:"#d47a52", rockBase:"#3d2620", rockDeep:"#1e1310", ore:"ore_orange" },
+    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, bg:["#1e1a2e","#0e0c16"], accent:"#6a5a94", accent2:"#a89bc9", rockBase:"#262038", rockDeep:"#14101d", ore:"ore_green" },
   ];
 
   const RARITY = {
@@ -960,7 +974,7 @@
     const cost = costFor(clickUpgrade.baseCost, clickUpgrade.costMult, level);
     const rarity = toolRarity(level);
     panel.appendChild(buildMinerCard({
-      icon: `<img src="${ASSET_SPRITES}pickaxe_a.png" style="width:26px;height:26px;image-rendering:pixelated;">`,
+      icon: `<img src="${ASSET_SPRITES}pickaxe_a.png" onerror="this.style.display='none'" style="width:26px;height:26px;image-rendering:pixelated;">`,
       name: clickUpgrade.name, flavor: clickUpgrade.flavor,
       desc: `Сила удара: ${fmtPrecise(clickPower())} 💎 за раз`,
       levelLabel: `Уровень ${level}`, level, cost, canAfford: state.resources >= cost, rarity,
@@ -1041,6 +1055,7 @@
       const useSprite = Math.random()<0.6;
       const el = document.createElement(useSprite?"img":"div");
       if(useSprite){
+        withImgFallback(el);
         el.src = ASSET_SPRITES + chunkNames[Math.floor(Math.random()*chunkNames.length)] + ".png";
         el.className = "dust-chunk";
         el.style.width = el.style.height = (8+Math.random()*8)+"px";
@@ -1243,6 +1258,7 @@
       item.style.setProperty("--r", "var(--"+d.rarity+")");
       const fig = document.createElement("img");
       fig.className = "reel-figure";
+      withImgFallback(fig);
       fig.src = ASSET_SPRITES + (Math.random()<0.5 ? "figure_dark.png" : "figure_hood.png");
       const emoji = document.createElement("span");
       emoji.className = "reel-emoji";
