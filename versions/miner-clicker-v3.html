@@ -200,25 +200,29 @@
   .oa2{ right:22%; top:56%; }
   .rockpile-decor{ position:absolute; width:34px; height:30px; left:50%; bottom:-4%; transform:translateX(-50%); image-rendering:pixelated; opacity:.8; z-index:0; pointer-events:none; }
 
-  /* CHEST — big, centered, auto-opening event */
-  #chest-backdrop{
-    position:fixed; inset:0; z-index:63; pointer-events:none;
-    background:rgba(8,5,3,0); transition:background .35s ease;
-  }
-  #chest-backdrop.show{ background:rgba(8,5,3,.6); }
+  /* CHEST — appears beside the ore (sized/positioned to clear #rock-wrap's
+     own min(66vw,250px) box at any viewport width), never blocks clicking it */
   #chest{
-    position:fixed; inset:0; margin:auto; width:190px; height:162px; z-index:65; cursor:pointer;
-    filter:drop-shadow(0 8px 18px rgba(0,0,0,.7));
-    animation:chestBob .7s ease-in-out infinite;
+    position:fixed; right:min(1.5vw,6px); top:50%; width:min(15vw,72px); height:min(12.75vw,61px);
+    z-index:65; cursor:pointer;
+    filter:drop-shadow(0 6px 14px rgba(0,0,0,.65));
+    animation:chestBob .8s ease-in-out infinite, chestFadeIn .35s ease-out;
   }
   .has-cursor-pickaxe #chest{ cursor:none; }
   #chest.hidden{ display:none; }
   #chest.opening{ animation:none; pointer-events:none; }
   #chest.opening #chestLidGroup{ animation:chestLidOpen .35s ease-in forwards; }
   #chest.opening{ animation:chestVanish .45s ease-in .3s forwards; }
-  @keyframes chestBob{ 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-14px) scale(1.03);} }
+  @keyframes chestBob{
+    0%,100%{ transform:translateY(-50%) translateY(0) scale(1); }
+    50%{ transform:translateY(-50%) translateY(-8px) scale(1.02); }
+  }
+  @keyframes chestFadeIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes chestLidOpen{ 0%{transform:rotate(0deg);} 100%{transform:rotate(-70deg);} }
-  @keyframes chestVanish{ 0%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(0.6) translateY(-10px);} }
+  @keyframes chestVanish{
+    0%{opacity:1; transform:translateY(-50%) scale(1);}
+    100%{opacity:0; transform:translateY(-50%) scale(0.6) translateY(-10px);}
+  }
 
   /* NAV */
   nav{ display:flex; flex-shrink:0; border-top:1px solid rgba(217,154,78,0.15); background:linear-gradient(180deg, var(--wood-mid), var(--wood-dark)); }
@@ -309,21 +313,25 @@
   .card.locked .card-name{ color:color-mix(in srgb, var(--ink) 55%, transparent); font-style:italic; }
 
   /* GACHA MODAL */
+  /* Anchored to the side like the chest, not a full-screen modal — the
+     wrapper stays pointer-events:none so clicks everywhere else (including
+     most of #rock-wrap) pass through; only .gacha-card itself catches them. */
   #gacha-overlay{
-    position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
-    background:rgba(6,4,3,0.82); opacity:0; pointer-events:none; transition:opacity .25s ease;
+    position:fixed; right:min(1.5vw,6px); top:50%; transform:translateY(-50%);
+    z-index:70; pointer-events:none; opacity:0; transition:opacity .25s ease;
   }
-  #gacha-overlay.show{ opacity:1; pointer-events:auto; }
+  #gacha-overlay.show{ opacity:1; }
   .gacha-card{
-    width:min(92vw, 360px); border-radius:6px; padding:20px 18px;
+    width:min(74vw, 200px); border-radius:6px; padding:16px 14px;
     background:linear-gradient(160deg, var(--wood-light), var(--wood-dark));
     border:2px solid #000a; box-shadow:0 10px 40px rgba(0,0,0,.7), inset 0 0 0 1px rgba(217,154,78,.15);
-    text-align:center;
+    text-align:center; pointer-events:none;
   }
-  .gacha-title{ font-family:'Pirata One',Georgia,serif; color:var(--candle-bright); font-size:1.2rem; margin-bottom:14px; text-shadow:0 0 10px rgba(217,154,78,.4); }
-  .reel-viewport{ position:relative; width:266px; height:76px; margin:0 auto 16px; overflow:hidden; border-radius:4px; background:rgba(0,0,0,.4); box-shadow:inset 0 0 12px rgba(0,0,0,.7), 0 0 0 1px rgba(217,154,78,.25); }
+  #gacha-overlay.show .gacha-card{ pointer-events:auto; }
+  .gacha-title{ font-family:'Pirata One',Georgia,serif; color:var(--candle-bright); font-size:1rem; margin-bottom:12px; text-shadow:0 0 10px rgba(217,154,78,.4); }
+  .reel-viewport{ position:relative; width:160px; height:52px; margin:0 auto 14px; overflow:hidden; border-radius:4px; background:rgba(0,0,0,.4); box-shadow:inset 0 0 12px rgba(0,0,0,.7), 0 0 0 1px rgba(217,154,78,.25); }
   .reel-track{ position:absolute; top:0; left:0; height:100%; display:flex; will-change:transform; }
-  .reel-item{ position:relative; width:66px; height:66px; margin:5px; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.8rem; overflow:hidden;
+  .reel-item{ position:relative; width:46px; height:46px; margin:3px; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.3rem; overflow:hidden;
     background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--r) 55%, white 10%), color-mix(in srgb, var(--r) 55%, black 20%));
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
   }
@@ -336,8 +344,8 @@
   .gacha-result{ min-height:110px; }
   .gacha-result.hidden{ display:none; }
   .result-seal{
-    width:74px; height:74px; border-radius:50%; margin:0 auto 10px;
-    display:flex; align-items:center; justify-content:center; font-size:2.1rem;
+    width:56px; height:56px; border-radius:50%; margin:0 auto 8px;
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem;
     background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--r) 60%, white 15%), color-mix(in srgb, var(--r) 60%, black 20%));
     box-shadow:0 0 22px color-mix(in srgb, var(--r) 55%, transparent), inset 0 0 0 2px rgba(0,0,0,.35);
     animation:resultPop .35s cubic-bezier(.2,1.4,.4,1);
@@ -460,7 +468,6 @@
         <path d="M8,30 Q46,4 90,28 L82,44 Q46,26 16,46 Z" fill="url(#headGrad)" stroke="#12100e" stroke-width="3" stroke-linejoin="round"/>
       </svg>
     </div>
-    <div id="chest-backdrop"></div>
     <div id="chest" class="hidden">
       <svg viewBox="0 0 40 34" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -750,6 +757,72 @@ const SOUNDS = {
     if(!audioCtx) return;
     if(document.hidden) audioCtx.suspend(); else audioCtx.resume();
   });
+
+  // ---------- AMBIENT MUSIC ----------
+  // A quiet background drone through the same audioCtx/reverb as the sound
+  // effects, deliberately much quieter than them so clicks/chest/gacha stay
+  // clearly audible on top. Started lazily on the player's first interaction
+  // (never before, per autoplay policy) and muted by the same state.muted
+  // toggle as everything else; the visibilitychange handler above already
+  // suspends/resumes the whole audioCtx when the tab is hidden, which pauses
+  // these oscillators for free (a suspended context stops advancing
+  // currentTime, so nothing needs to know about tab visibility separately).
+  const MUSIC_CHORDS = [
+    [98.00, 146.83, 196.00],
+    [110.00, 164.81, 220.00],
+    [87.31, 130.81, 174.61],
+    [98.00, 146.83, 220.00],
+    [92.50, 138.59, 185.00],
+  ];
+  const MUSIC_VOLUME = 0.045;
+  let musicStarted = false;
+  let musicGain = null;
+  let musicVoices = [];
+  function startMusic(){
+    if(musicStarted) return;
+    musicStarted = true;
+    const ctx = getCtx();
+    if(!reverbNode) reverbNode = buildReverb(ctx);
+    musicGain = ctx.createGain();
+    musicGain.gain.value = state.muted ? 0 : MUSIC_VOLUME;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 800;
+    musicGain.connect(lp);
+    lp.connect(ctx.destination);
+    lp.connect(reverbNode.input);
+
+    const startChord = MUSIC_CHORDS[0];
+    for(let i=0;i<3;i++){
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = startChord[i];
+      const voiceGain = ctx.createGain();
+      voiceGain.gain.value = 0.33;
+      osc.connect(voiceGain).connect(musicGain);
+      osc.start();
+      musicVoices.push({ osc, gain: voiceGain });
+    }
+    scheduleNextChord();
+  }
+  function scheduleNextChord(){
+    setTimeout(()=>{
+      const chord = MUSIC_CHORDS[Math.floor(Math.random()*MUSIC_CHORDS.length)];
+      const ctx = getCtx();
+      const now = ctx.currentTime;
+      musicVoices.forEach((v,i)=>{
+        v.osc.frequency.cancelScheduledValues(now);
+        v.osc.frequency.setValueAtTime(v.osc.frequency.value, now);
+        v.osc.frequency.linearRampToValueAtTime(chord[i % chord.length], now + 5);
+      });
+      scheduleNextChord();
+    }, 16000 + Math.random()*9000);
+  }
+  function setMusicMuted(muted){
+    if(!musicGain) return;
+    const ctx = getCtx();
+    musicGain.gain.cancelScheduledValues(ctx.currentTime);
+    musicGain.gain.linearRampToValueAtTime(muted ? 0 : MUSIC_VOLUME, ctx.currentTime + 0.5);
+  }
 
   // ---------- PROCEDURAL TEXTURES ----------
   function mulberry32(seed){
@@ -1082,7 +1155,6 @@ const SOUNDS = {
   const torchRight = document.getElementById("torchRight");
   const rockpileDecor = document.getElementById("rockpileDecor");
   const pickaxeCursorEl = document.getElementById("pickaxeCursor");
-  const chestBackdropEl = document.getElementById("chest-backdrop");
   [torchLeft, torchRight, rockpileDecor].forEach(withImgFallback);
   torchLeft.src = SPRITES.torch_lit_a;
   torchRight.src = SPRITES.torch_lit_b;
@@ -1455,8 +1527,9 @@ const SOUNDS = {
   }
 
   // ---------- CHEST + GACHA ----------
-  // The chest is a short automatic event, not a click target the player must
-  // find: it appears large and centered, bounces, then opens itself.
+  // The chest is a short automatic event that appears beside the ore, not a
+  // modal the player must resolve before continuing — no backdrop, it never
+  // covers #rock-wrap's own click area, and it bounces then opens itself.
   const CHEST_AUTO_OPEN_MS = 850;
   let chestPending = false;
   let chestAutoTimer = null;
@@ -1465,7 +1538,6 @@ const SOUNDS = {
     if(Math.random() < CHEST_DROP_CHANCE){
       chestPending = true;
       chestEl.classList.remove("hidden","opening");
-      chestBackdropEl.classList.add("show");
       playChestDrop();
       chestAutoTimer = setTimeout(openChestNow, CHEST_AUTO_OPEN_MS);
     }
@@ -1474,7 +1546,6 @@ const SOUNDS = {
     if(!chestPending || chestEl.classList.contains("opening")) return;
     clearTimeout(chestAutoTimer);
     chestEl.classList.add("opening");
-    chestBackdropEl.classList.remove("show");
     playChestOpen();
     setTimeout(playChestClose, 200);
     setTimeout(()=>{
@@ -1505,8 +1576,8 @@ const SOUNDS = {
   const gachaResultEl = document.getElementById("gacha-result");
   const gachaCloseBtn = document.getElementById("gacha-close");
   const legendaryFlashEl = document.getElementById("legendary-flash");
-  const REEL_ITEM_W = 76;
-  const REEL_VIEWPORT_W = 266;
+  const REEL_ITEM_W = 52;
+  const REEL_VIEWPORT_W = 160;
   const REEL_LEN = 26;
 
   function openGachaFlow(){
@@ -1628,6 +1699,7 @@ const SOUNDS = {
   }
 
   rockWrap.addEventListener("click", (e)=>{
+    startMusic();
     const power = clickPower();
     onEarn(power);
     if(activeTab === "click") renderPanel();
@@ -1650,6 +1722,8 @@ const SOUNDS = {
   muteBtn.addEventListener("click", ()=>{
     state.muted = !state.muted;
     if(!state.muted) getCtx();
+    startMusic();
+    setMusicMuted(state.muted);
     updateHeader(); save();
   });
 
