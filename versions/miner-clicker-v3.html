@@ -18,6 +18,16 @@
     if(typeof YaGames === "undefined") return;
     YaGames.init().then(function(ysdk){
       window.ysdk = ysdk;
+      // Platform requirement 2.14: query the player's language from the SDK
+      // instead of assuming one. All game text is Russian-only for now (no
+      // translated strings exist yet), so this doesn't change what's shown —
+      // it just stops hardcoding <html lang> and makes the detected value
+      // available (window.__yandexLang) for real localization later.
+      var lang = ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang;
+      if(lang){
+        window.__yandexLang = lang;
+        document.documentElement.setAttribute("lang", lang);
+      }
       if(ysdk.features && ysdk.features.LoadingAPI){
         ysdk.features.LoadingAPI.ready();
       }
