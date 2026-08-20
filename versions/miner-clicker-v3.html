@@ -31,6 +31,23 @@
       if(ysdk.features && ysdk.features.LoadingAPI){
         ysdk.features.LoadingAPI.ready();
       }
+      // Platform requirement 1.19.2 (Game Ready API): the game is playable
+      // immediately once LoadingAPI.ready() fires, so gameplay "starts" here;
+      // the main script also calls this again defensively once it boots, and
+      // pairs it with GameplayAPI.stop() around tab-hidden/ad moments.
+      if(ysdk.features && ysdk.features.GameplayAPI){
+        ysdk.features.GameplayAPI.start();
+      }
+      // Platform requirement 1.9: fetch the player handle so the main game
+      // script can read/write progress through ysdk.getPlayer() instead of
+      // (only) localStorage. scopes:false skips the personal-data consent
+      // prompt — getData/setData works for anonymous players too. Dispatched
+      // as a DOM event because this <head> script runs before the game's own
+      // <script> IIFE at the bottom of <body> even exists yet.
+      ysdk.getPlayer({ scopes: false }).then(function(player){
+        window.__yandexPlayer = player;
+        window.dispatchEvent(new Event("yandex-player-ready"));
+      }).catch(function(){});
     }).catch(function(){});
   }
 </script>
@@ -93,6 +110,16 @@
     width:34px; height:34px; font-size:1rem; color:var(--parchment);
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  /* The header's top-right corner has no spare room (torch-right, mute-btn
+     and the wide .resource-panel already fill it edge-to-edge on narrow
+     phones — stacking a second icon-btn there clipped into the resource
+     panel). Anchored to the opposite screen edge instead, fixed and
+     vertical-centered like #chest, so it can never collide with header
+     content at any viewport width. */
+  #ad-btn{
+    position:fixed; top:50%; left:min(1.5vw,6px); right:auto;
+    transform:translateY(-50%); z-index:60; font-size:1.1rem;
   }
   .torch{ position:absolute; top:9px; width:24px; height:24px; image-rendering:pixelated; pointer-events:none;
     filter:drop-shadow(0 0 7px rgba(217,154,78,.65)); animation:torchFlicker 1.8s ease-in-out infinite; }
@@ -398,6 +425,7 @@
   <div id="toast"></div>
   <header>
     <button class="icon-btn" id="mute-btn" aria-label="Звук">🔊</button>
+    <button class="icon-btn" id="ad-btn" aria-label="Бонус за рекламу" title="Посмотреть рекламу за бонус">📺</button>
     <img class="torch torch-left" id="torchLeft" alt="">
     <img class="torch torch-right" id="torchRight" alt="">
     <div class="loc-label" id="loc-label">📍 Пещера кристаллов</div>
@@ -582,6 +610,7 @@ const SOUNDS = {
     gachaMiners: [],
     currentLocation: 0,
     muted: false,
+    rewardBoostUntil: 0,
   };
 
   // ---------- STATIC DATA ----------
@@ -640,17 +669,54 @@ const SOUNDS = {
       state.currentLocation = 0;
     }
   }
-  function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
+  // localStorage stays the source of truth for the instant, synchronous boot
+  // read above (works identically with no SDK at all). Once Yandex's player
+  // handle shows up (platform requirement 1.9) we additionally push every
+  // save to the cloud, and reconcile once on startup in favor of whichever
+  // save has progressed further (totalEarned only ever increases, so it's a
+  // safe monotonic comparison — no dependence on possibly-skewed clocks).
+  function save(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+    const player = window.__yandexPlayer;
+    if(player){
+      try{ player.setData({ save: JSON.stringify(state) }, true).catch(()=>{}); }catch(e){}
+    }
+  }
+  function syncCloudSave(){
+    const player = window.__yandexPlayer;
+    if(!player) return;
+    player.getData(["save"]).then(function(data){
+      const raw = data && data.save;
+      if(!raw){ save(); return; }
+      try{
+        const cloudState = JSON.parse(raw);
+        if(cloudState && typeof cloudState.totalEarned === "number" && cloudState.totalEarned > state.totalEarned){
+          state = Object.assign(state, cloudState);
+          if(!Array.isArray(state.gachaMiners)) state.gachaMiners = [];
+          if(!LOCATIONS[state.currentLocation] || state.totalEarned < LOCATIONS[state.currentLocation].unlockAt){
+            state.currentLocation = 0;
+          }
+          applyLocationVisual();
+          updateHeader();
+          renderPanel();
+        }
+      }catch(e){}
+    }).catch(()=>{});
+  }
+  window.addEventListener("yandex-player-ready", syncCloudSave);
 
   // ---------- ECONOMY MATH (unchanged formulas from v2) ----------
   function costFor(base, mult, level){ return Math.ceil(base * Math.pow(mult, level)); }
   function unlockedCount(){ return LOCATIONS.filter(l=> state.totalEarned >= l.unlockAt).length; }
   function locationBonusMult(){ return 1 + 0.15*(unlockedCount()-1); }
-  function clickPower(){ return (1 + state.clickLevel*clickUpgrade.baseValue) * locationBonusMult(); }
+  // Rewarded-ad bonus (platform requirement 4.5): a short, explicitly
+  // consented-to x2 window, not a passive multiplier — expires on its own.
+  function rewardMult(){ return (state.rewardBoostUntil && Date.now() < state.rewardBoostUntil) ? 2 : 1; }
+  function clickPower(){ return (1 + state.clickLevel*clickUpgrade.baseValue) * locationBonusMult() * rewardMult(); }
   function perSecond(){
     let total=0;
     state.gachaMiners.forEach(m=> total += m.rate);
-    return total * locationBonusMult();
+    return total * locationBonusMult() * rewardMult();
   }
 
   function fmt(n){
@@ -764,9 +830,74 @@ const SOUNDS = {
   }
   function playUnlock(){ playConfirm(); }
   document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden){ graStop(); } else { graStart(); }
     if(!audioCtx) return;
     if(document.hidden) audioCtx.suspend(); else audioCtx.resume();
   });
+
+  // ---------- YANDEX PLATFORM COMPLIANCE ----------
+  // Requirement 1.6: the browser's own right-click / long-press context menu
+  // has no use in a single-screen clicker and would sit on top of the game's
+  // own UI, so it's suppressed across the whole page (the entire page is the
+  // "game area" here — there's no separate chrome to exempt).
+  document.addEventListener("contextmenu", (e)=> e.preventDefault());
+
+  // Requirement 1.19.2 (Game Ready API): pair GameplayAPI.start()/stop() with
+  // whatever actually pauses/resumes play — tab visibility and ad playback.
+  // Both are no-ops with no SDK present (window.ysdk undefined off-platform).
+  function graStart(){
+    const ysdk = window.ysdk;
+    if(ysdk && ysdk.features && ysdk.features.GameplayAPI) ysdk.features.GameplayAPI.start();
+  }
+  function graStop(){
+    const ysdk = window.ysdk;
+    if(ysdk && ysdk.features && ysdk.features.GameplayAPI) ysdk.features.GameplayAPI.stop();
+  }
+
+  // Requirement 4.4/4.7: interstitials only at a genuine gameplay pause (a
+  // location finishing its travel transition — never mid-click), throttled so
+  // they can't stack up back-to-back, and always pausing audio while shown.
+  let lastInterstitialAt = 0;
+  const INTERSTITIAL_MIN_GAP_MS = 3*60*1000;
+  function maybeShowInterstitial(){
+    const ysdk = window.ysdk;
+    if(!ysdk || !ysdk.adv) return;
+    const now = Date.now();
+    if(now - lastInterstitialAt < INTERSTITIAL_MIN_GAP_MS) return;
+    lastInterstitialAt = now;
+    ysdk.adv.showFullscreenAdv({
+      callbacks:{
+        onOpen: ()=>{ if(audioCtx) audioCtx.suspend(); graStop(); },
+        onClose: ()=>{ if(audioCtx && !document.hidden) audioCtx.resume(); graStart(); },
+        onError: ()=>{ if(audioCtx && !document.hidden) audioCtx.resume(); graStart(); },
+      }
+    });
+  }
+
+  // Requirement 4.5: rewarded video always behind an explicit confirm — the
+  // SDK call only fires after the player agrees, never automatically.
+  function applyRewardBonus(){
+    state.rewardBoostUntil = Date.now() + 60000;
+    updateHeader();
+    save();
+    showToast("Бонус активен: x2 добыча на 60 секунд ⚡");
+  }
+  function showRewardedBonus(){
+    const ysdk = window.ysdk;
+    if(!ysdk || !ysdk.adv){
+      showToast("Реклама доступна только в Яндекс Играх");
+      return;
+    }
+    if(!window.confirm("Посмотреть короткую рекламу и получить x2 к добыче на 60 секунд?")) return;
+    ysdk.adv.showRewardedVideo({
+      callbacks:{
+        onOpen: ()=>{ if(audioCtx) audioCtx.suspend(); graStop(); },
+        onRewarded: ()=> applyRewardBonus(),
+        onClose: ()=>{ if(audioCtx && !document.hidden) audioCtx.resume(); graStart(); },
+        onError: ()=>{ if(audioCtx && !document.hidden) audioCtx.resume(); graStart(); },
+      }
+    });
+  }
 
   // ---------- AMBIENT MUSIC ----------
   // A generative music-box melody, not a static drone: a barely-audible low
@@ -1166,6 +1297,7 @@ const SOUNDS = {
   const panel = document.getElementById("panel");
   const tabBtns = document.querySelectorAll(".tab-btn");
   const muteBtn = document.getElementById("mute-btn");
+  const adBtn = document.getElementById("ad-btn");
   const toastEl = document.getElementById("toast");
   const portalEl = document.getElementById("portal");
   const rockTextureImg = document.getElementById("rockTextureImg");
@@ -1227,6 +1359,7 @@ const SOUNDS = {
     const ps = perSecond();
     perSecEl.textContent = ps > 0 ? `${fmtPrecise(ps)} в секунду` : "Найми шахтёра, чтобы добыча шла сама";
     muteBtn.textContent = state.muted ? "🔇" : "🔊";
+    adBtn.textContent = rewardMult() > 1 ? "⚡" : "📺";
   }
 
   let seenUnlockedCount = 1;
@@ -1716,6 +1849,9 @@ const SOUNDS = {
       portalEl.classList.remove("active");
       save();
       renderPanel();
+      // A finished travel transition is the one moment nothing is mid-swing
+      // or mid-reel — the natural "logical pause" for an interstitial (4.4).
+      maybeShowInterstitial();
     }, reducedMotion ? 260 : 920);
   }
 
@@ -1747,6 +1883,8 @@ const SOUNDS = {
     setMusicMuted(state.muted);
     updateHeader(); save();
   });
+
+  adBtn.addEventListener("click", showRewardedBonus);
 
   tabBtns.forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -1795,6 +1933,8 @@ const SOUNDS = {
   renderPanel();
   startAmbient();
   preloadAudio();
+  graStart();
+  if(window.__yandexPlayer) syncCloudSave();
 })();
 </script>
 </body>
