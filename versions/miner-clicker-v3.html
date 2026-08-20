@@ -759,69 +759,80 @@ const SOUNDS = {
   });
 
   // ---------- AMBIENT MUSIC ----------
-  // A quiet background drone through the same audioCtx/reverb as the sound
-  // effects, deliberately much quieter than them so clicks/chest/gacha stay
-  // clearly audible on top. Started lazily on the player's first interaction
-  // (never before, per autoplay policy) and muted by the same state.muted
-  // toggle as everything else; the visibilitychange handler above already
-  // suspends/resumes the whole audioCtx when the tab is hidden, which pauses
-  // these oscillators for free (a suspended context stops advancing
-  // currentTime, so nothing needs to know about tab visibility separately).
-  const MUSIC_CHORDS = [
-    [98.00, 146.83, 196.00],
-    [110.00, 164.81, 220.00],
-    [87.31, 130.81, 174.61],
-    [98.00, 146.83, 220.00],
-    [92.50, 138.59, 185.00],
-  ];
-  const MUSIC_VOLUME = 0.045;
+  // A generative music-box melody, not a static drone: a barely-audible low
+  // pad for space, plus single bell-like notes from a minor-pentatonic scale
+  // (any random order sounds intentional on a pentatonic scale, never a wrong
+  // note) dropped in one at a time on a slow, irregular clock — that's what
+  // actually reads as "music" instead of a hum. Routed through the same
+  // audioCtx/reverb as the sound effects, well under their volume so
+  // clicks/chest/gacha stay clearly on top. Started lazily on the player's
+  // first interaction (never before, per autoplay policy) and muted by the
+  // same state.muted toggle as everything else; the visibilitychange handler
+  // above already suspends/resumes the whole audioCtx when the tab is
+  // hidden, which pauses every note/timer for free (a suspended context
+  // stops advancing currentTime, and setTimeout keeps firing in real time
+  // but playMelodyNote() just schedules against a currentTime that isn't
+  // moving, so nothing audible happens until resume).
+  const MUSIC_SCALE = [110.00, 130.81, 146.83, 164.81, 196.00, 220.00, 261.63, 293.66, 329.63, 392.00]; // A minor pentatonic, 2 octaves
+  const MUSIC_DRONE = [55.00, 82.41]; // A1, E2 — just a soft floor under the melody
+  const MUSIC_NOTE_PEAK = 0.07;
+  const MUSIC_DRONE_VOLUME = 0.02;
   let musicStarted = false;
-  let musicGain = null;
-  let musicVoices = [];
+  let musicMasterGain = null;
+  let musicBus = null;
   function startMusic(){
     if(musicStarted) return;
     musicStarted = true;
     const ctx = getCtx();
     if(!reverbNode) reverbNode = buildReverb(ctx);
-    musicGain = ctx.createGain();
-    musicGain.gain.value = state.muted ? 0 : MUSIC_VOLUME;
+    musicMasterGain = ctx.createGain();
+    musicMasterGain.gain.value = state.muted ? 0 : 1;
     const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass"; lp.frequency.value = 800;
-    musicGain.connect(lp);
+    lp.type = "lowpass"; lp.frequency.value = 1400;
+    musicMasterGain.connect(lp);
     lp.connect(ctx.destination);
     lp.connect(reverbNode.input);
+    musicBus = musicMasterGain;
 
-    const startChord = MUSIC_CHORDS[0];
-    for(let i=0;i<3;i++){
+    MUSIC_DRONE.forEach(freq=>{
       const osc = ctx.createOscillator();
       osc.type = "sine";
-      osc.frequency.value = startChord[i];
-      const voiceGain = ctx.createGain();
-      voiceGain.gain.value = 0.33;
-      osc.connect(voiceGain).connect(musicGain);
+      osc.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.value = MUSIC_DRONE_VOLUME;
+      osc.connect(g).connect(musicBus);
       osc.start();
-      musicVoices.push({ osc, gain: voiceGain });
-    }
-    scheduleNextChord();
+    });
+
+    scheduleNextNote();
   }
-  function scheduleNextChord(){
+  function playMelodyNote(){
+    const ctx = getCtx();
+    const freq = MUSIC_SCALE[Math.floor(Math.random()*MUSIC_SCALE.length)];
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const g = ctx.createGain();
+    const now = ctx.currentTime;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(MUSIC_NOTE_PEAK, now + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 3.4);
+    osc.connect(g).connect(musicBus);
+    osc.start(now);
+    osc.stop(now + 3.5);
+  }
+  function scheduleNextNote(){
     setTimeout(()=>{
-      const chord = MUSIC_CHORDS[Math.floor(Math.random()*MUSIC_CHORDS.length)];
-      const ctx = getCtx();
-      const now = ctx.currentTime;
-      musicVoices.forEach((v,i)=>{
-        v.osc.frequency.cancelScheduledValues(now);
-        v.osc.frequency.setValueAtTime(v.osc.frequency.value, now);
-        v.osc.frequency.linearRampToValueAtTime(chord[i % chord.length], now + 5);
-      });
-      scheduleNextChord();
-    }, 16000 + Math.random()*9000);
+      playMelodyNote();
+      if(Math.random() < 0.4) setTimeout(playMelodyNote, 650 + Math.random()*550);
+      scheduleNextNote();
+    }, 2000 + Math.random()*2600);
   }
   function setMusicMuted(muted){
-    if(!musicGain) return;
+    if(!musicMasterGain) return;
     const ctx = getCtx();
-    musicGain.gain.cancelScheduledValues(ctx.currentTime);
-    musicGain.gain.linearRampToValueAtTime(muted ? 0 : MUSIC_VOLUME, ctx.currentTime + 0.5);
+    musicMasterGain.gain.cancelScheduledValues(ctx.currentTime);
+    musicMasterGain.gain.linearRampToValueAtTime(muted ? 0 : 1, ctx.currentTime + 0.5);
   }
 
   // ---------- PROCEDURAL TEXTURES ----------
