@@ -62,18 +62,6 @@
     background:radial-gradient(circle at 50% 44%, rgba(235,185,115,.22) 0%, rgba(235,185,115,.09) 32%, transparent 62%);
   }
 
-  /* GRAIN + VIGNETTE */
-  #grain{
-    position:fixed; inset:0; z-index:60; pointer-events:none;
-    background-image:var(--grain-tile);
-    background-size:180px 180px;
-    mix-blend-mode:overlay; opacity:.16;
-  }
-  #vignette{
-    position:fixed; inset:0; z-index:59; pointer-events:none;
-    background:radial-gradient(ellipse at 50% 42%, transparent 44%, rgba(0,0,0,.2) 78%, rgba(0,0,0,.42) 100%);
-  }
-
   /* PORTAL TRANSITION OVERLAY */
   #portal{
     position:fixed; inset:0; z-index:45; pointer-events:none; opacity:0;
@@ -207,7 +195,7 @@
   .spark{ position:absolute; width:3px; height:3px; border-radius:50%; pointer-events:none; z-index:7; background:var(--candle-bright); box-shadow:0 0 5px var(--candle-bright); }
   .dust-chunk{ position:absolute; pointer-events:none; z-index:6; image-rendering:pixelated; }
 
-  .ore-accent{ position:absolute; width:20px; height:20px; image-rendering:pixelated; z-index:1; pointer-events:none; opacity:.9; filter:drop-shadow(0 0 4px rgba(0,0,0,.55)); }
+  .ore-accent{ position:absolute; width:26px; height:26px; z-index:1; pointer-events:none; opacity:.95; filter:drop-shadow(0 0 4px rgba(0,0,0,.55)); }
   .oa1{ left:26%; top:36%; }
   .oa2{ right:22%; top:56%; }
   .rockpile-decor{ position:absolute; width:34px; height:30px; left:50%; bottom:-4%; transform:translateX(-50%); image-rendering:pixelated; opacity:.8; z-index:0; pointer-events:none; }
@@ -339,8 +327,7 @@
     background:radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--r) 55%, white 10%), color-mix(in srgb, var(--r) 55%, black 20%));
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
   }
-  .reel-figure{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; opacity:.4; mix-blend-mode:multiply; }
-  .reel-emoji{ position:relative; z-index:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+  .reel-figure{ position:absolute; inset:0; width:88%; height:88%; margin:auto; object-fit:contain; }
   .reel-marker{ position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; transform:translateX(-1px); background:var(--blood-bright); box-shadow:0 0 8px var(--blood-bright); }
   .reel-marker::before, .reel-marker::after{ content:""; position:absolute; left:50%; width:0; height:0; transform:translateX(-50%); border:6px solid transparent; }
   .reel-marker::before{ top:-6px; border-top-color:var(--blood-bright); }
@@ -388,8 +375,6 @@
 </head>
 <body>
 <div id="app">
-  <div id="grain"></div>
-  <div id="vignette"></div>
   <div id="portal"></div>
   <div id="legendary-flash"></div>
   <div id="toast"></div>
@@ -496,8 +481,8 @@
 
   <nav>
     <button class="tab-btn active" data-tab="click">⛏ Кирка</button>
-    <button class="tab-btn" data-tab="auto">⚙ Артель</button>
-    <button class="tab-btn" data-tab="loc">🗺 Забои</button>
+    <button class="tab-btn" data-tab="auto">⚙ Шахтёры</button>
+    <button class="tab-btn" data-tab="loc">🗺 Локации</button>
   </nav>
 
   <div id="panel"></div>
@@ -505,7 +490,7 @@
 
 <div id="gacha-overlay">
   <div class="gacha-card">
-    <div class="gacha-title">Сундук из забоя</div>
+    <div class="gacha-title">Найден сундук!</div>
     <div class="reel-viewport">
       <div class="reel-track" id="reel-track"></div>
       <div class="reel-marker"></div>
@@ -599,11 +584,11 @@ const SOUNDS = {
   ];
 
   const LOCATIONS = [
-    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       bg:["#4a3a2e","#1e140c"], accent:"#9a7fc9", accent2:"#c4aef2", rockBase:"#453a56", rockDeep:"#241c30", ore:"ore_purple" },
-    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    bg:["#5c4322","#2a1c0c"], accent:"#e0a83f", accent2:"#ffd873", rockBase:"#4f3f22", rockDeep:"#2a2010", ore:"ore_gold" },
-    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   bg:["#204852","#0e2028"], accent:"#3fb4c9", accent2:"#8fe0f2", rockBase:"#264752", rockDeep:"#12262e", ore:"ore_silver" },
-    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  bg:["#5c2410","#2a0e06"], accent:"#e0552f", accent2:"#ff9a5c", rockBase:"#4a2818", rockDeep:"#26130a", ore:"ore_orange" },
-    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, bg:["#241e42","#0e0c20"], accent:"#8f6fe0", accent2:"#d4b8ff", rockBase:"#2c2448", rockDeep:"#161228", ore:"ore_green" },
+    { id:"cave",  name:"Пещера кристаллов", icon:"💎", tagline:"Здесь всё начиналось",  unlockAt:0,       accent:"#9a7fc9", accent2:"#c4aef2", rockBase:"#453a56", rockDeep:"#241c30", ore:"ore_purple" },
+    { id:"gold",  name:"Золотая шахта",     icon:"🪙", tagline:"Блеск, который не ржавеет", unlockAt:1000,    accent:"#e0a83f", accent2:"#ffd873", rockBase:"#4f3f22", rockDeep:"#2a2010", ore:"ore_gold" },
+    { id:"ice",   name:"Ледяная пещера",    icon:"❄️", tagline:"Холод, который жжётся",  unlockAt:20000,   accent:"#3fb4c9", accent2:"#8fe0f2", rockBase:"#264752", rockDeep:"#12262e", ore:"ore_silver" },
+    { id:"lava",  name:"Огненные недра",    icon:"🔥", tagline:"Осторожно, здесь жарко", unlockAt:250000,  accent:"#e0552f", accent2:"#ff9a5c", rockBase:"#4a2818", rockDeep:"#26130a", ore:"ore_orange" },
+    { id:"space", name:"Звёздный астероид", icon:"✨", tagline:"Дальше только звёзды",   unlockAt:3000000, accent:"#8f6fe0", accent2:"#d4b8ff", rockBase:"#2c2448", rockDeep:"#161228", ore:"ore_green" },
   ];
 
   const RARITY = {
@@ -792,7 +777,6 @@ const SOUNDS = {
     const n = parseInt(hex.replace('#',''),16);
     return [(n>>16)&255, (n>>8)&255, n&255];
   }
-  function hexToRgba(hex, a){ const [r,g,b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
   function lerpColor(c1,c2,t){ return [0,1,2].map(i=> Math.round(c1[i]+(c2[i]-c1[i])*t)); }
 
   const textureCache = {};
@@ -869,6 +853,213 @@ const SOUNDS = {
     return url;
   }
 
+  // ---------- SCENE ART (full-scene background, hand-authored shapes — not noise) ----------
+  // Each location gets a recognizable illustrated scene (crystals, gold veins,
+  // icicles, lava cracks, an asteroid+stars) built from small vector-shape
+  // helpers below, placed with a seeded RNG for organic-but-deterministic
+  // scatter. This is deliberately separate from generateLocationTexture()
+  // above, which still supplies the ore's own small-scale rock-grain fill.
+  function rr(rng, min, max){ return min + rng()*(max-min); }
+
+  function svgCrystal(cx, cy, s, rot, light, dark, glow){
+    return `<g transform="rotate(${rot.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})">
+      <ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${(s*1.5).toFixed(1)}" ry="${(s*1.2).toFixed(1)}" fill="${glow}" opacity="0.32" filter="url(#artGlow)"/>
+      <polygon points="${cx},${(cy-s).toFixed(1)} ${(cx+s*0.5).toFixed(1)},${(cy-s*0.15).toFixed(1)} ${(cx+s*0.32).toFixed(1)},${(cy+s*0.75).toFixed(1)} ${(cx-s*0.32).toFixed(1)},${(cy+s*0.75).toFixed(1)} ${(cx-s*0.5).toFixed(1)},${(cy-s*0.15).toFixed(1)}"
+        fill="${light}" stroke="#160e1c" stroke-width="1.6" stroke-linejoin="round"/>
+      <polygon points="${cx},${(cy-s).toFixed(1)} ${(cx+s*0.5).toFixed(1)},${(cy-s*0.15).toFixed(1)} ${cx},${(cy+s*0.1).toFixed(1)}" fill="${dark}" opacity="0.55"/>
+      <polygon points="${cx},${(cy-s).toFixed(1)} ${(cx-s*0.5).toFixed(1)},${(cy-s*0.15).toFixed(1)} ${cx},${(cy+s*0.1).toFixed(1)}" fill="#fff" opacity="0.18"/>
+    </g>`;
+  }
+
+  function svgVein(rng, x0, y0, angle, len, segs, color, nuggetColor){
+    let x=x0, y=y0;
+    const pts=[[x,y]];
+    for(let i=0;i<segs;i++){
+      const a = angle + rr(rng,-0.55,0.55);
+      x += Math.cos(a)*(len/segs); y += Math.sin(a)*(len/segs);
+      pts.push([x,y]);
+    }
+    const d = pts.map((p,i)=> (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    let nuggets='';
+    pts.forEach((p,i)=>{
+      if(i>0 && i%2===0){
+        const nr = rr(rng,3,6.5);
+        nuggets += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${nr.toFixed(1)}" fill="${nuggetColor}" stroke="#5c3d10" stroke-width="1"/>
+          <circle cx="${(p[0]-nr*0.3).toFixed(1)}" cy="${(p[1]-nr*0.3).toFixed(1)}" r="${(nr*0.35).toFixed(1)}" fill="#fff5d6" opacity="0.75"/>`;
+      }
+    });
+    return `<path d="${d}" stroke="${color}" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#artGlow)" opacity="0.9"/>${nuggets}`;
+  }
+
+  function svgIcicle(x, edgeY, len, w, down){
+    const tipY = down ? edgeY+len : edgeY-len;
+    const midY = down ? edgeY+len*0.42 : edgeY-len*0.42;
+    return `<path d="M${(x-w).toFixed(1)},${edgeY} Q${x.toFixed(1)},${midY.toFixed(1)} ${x.toFixed(1)},${tipY.toFixed(1)} Q${x.toFixed(1)},${midY.toFixed(1)} ${(x+w).toFixed(1)},${edgeY} Z"
+      fill="url(#iceGrad)" stroke="#0e2830" stroke-width="1.2"/>`;
+  }
+
+  function svgCrack(rng, x0, y0, segs, segLen, color, thick){
+    let x=x0, y=y0, angle = rr(rng,0,Math.PI*2);
+    let d = `M${x.toFixed(1)},${y.toFixed(1)}`;
+    for(let i=0;i<segs;i++){
+      angle += rr(rng,-0.85,0.85);
+      x += Math.cos(angle)*segLen; y += Math.sin(angle)*segLen;
+      d += ` L${x.toFixed(1)},${y.toFixed(1)}`;
+    }
+    return `<path d="${d}" stroke="${color}" stroke-width="${thick}" fill="none" stroke-linecap="round" filter="url(#artGlow)" opacity="0.92"/>`;
+  }
+
+  function svgStarField(rng, w, h, count){
+    let out='';
+    for(let i=0;i<count;i++){
+      const x=rr(rng,0,w), y=rr(rng,0,h*0.75), r=rr(rng,0.6,2.2), op=rr(rng,0.35,0.95);
+      out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#fff" opacity="${op.toFixed(2)}"/>`;
+    }
+    for(let i=0;i<6;i++){
+      const x=rr(rng,0,w), y=rr(rng,0,h*0.6), r=rr(rng,2.2,3.6);
+      out += `<path d="M${x.toFixed(1)},${(y-r*2.2).toFixed(1)} L${(x+r*0.5).toFixed(1)},${(y-r*0.5).toFixed(1)} L${(x+r*2.2).toFixed(1)},${y.toFixed(1)} L${(x+r*0.5).toFixed(1)},${(y+r*0.5).toFixed(1)} L${x.toFixed(1)},${(y+r*2.2).toFixed(1)} L${(x-r*0.5).toFixed(1)},${(y+r*0.5).toFixed(1)} L${(x-r*2.2).toFixed(1)},${y.toFixed(1)} L${(x-r*0.5).toFixed(1)},${(y-r*0.5).toFixed(1)} Z" fill="#fff" opacity="0.9"/>`;
+    }
+    return out;
+  }
+
+  function svgAsteroid(rng, cx, cy, r){
+    const n=11, pts=[];
+    for(let i=0;i<n;i++){
+      const a = (i/n)*Math.PI*2;
+      const rad = r*rr(rng,0.72,1.08);
+      pts.push([cx+Math.cos(a)*rad, cy+Math.sin(a)*rad]);
+    }
+    const poly = pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    let craters='';
+    for(let i=0;i<5;i++){
+      const a=rr(rng,0,Math.PI*2), dist=rr(rng,0,r*0.55), cr=r*rr(rng,0.08,0.16);
+      const px=cx+Math.cos(a)*dist, py=cy+Math.sin(a)*dist;
+      craters += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${cr.toFixed(1)}" fill="#100a1e" opacity="0.55"/>`;
+    }
+    return `<polygon points="${poly}" fill="url(#asteroidGrad)" stroke="#0a0714" stroke-width="2.5" stroke-linejoin="round"/>${craters}`;
+  }
+
+  const artCache = {};
+  function generateLocationArt(loc){
+    if(artCache[loc.id]) return artCache[loc.id];
+    const rng = mulberry32(loc.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)*104729 + 17);
+    const W=400, H=700;
+    const deep = loc.rockDeep, base = loc.rockBase, acc = loc.accent, acc2 = loc.accent2;
+    let scene = '';
+    const defs = `<defs>
+      <filter id="artGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+      <radialGradient id="bgGrad" cx="50%" cy="20%" r="90%">
+        <stop offset="0%" stop-color="${base}"/><stop offset="100%" stop-color="${deep}"/>
+      </radialGradient>
+      <linearGradient id="iceGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#eaf7fb"/><stop offset="100%" stop-color="${acc}"/>
+      </linearGradient>
+      <radialGradient id="asteroidGrad" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="${acc2}"/><stop offset="100%" stop-color="${deep}"/>
+      </radialGradient>
+      <radialGradient id="lavaPool" cx="50%" cy="100%" r="70%">
+        <stop offset="0%" stop-color="${acc2}"/><stop offset="60%" stop-color="${acc}"/><stop offset="100%" stop-color="transparent"/>
+      </radialGradient>
+    </defs>`;
+    let body = `<rect width="${W}" height="${H}" fill="url(#bgGrad)"/>`;
+
+    if(loc.id==="cave"){
+      body += `<path d="M0,0 L${W*0.22},0 Q${W*0.05},${H*0.4} ${W*0.12},${H} L0,${H} Z" fill="${deep}" opacity="0.85"/>`;
+      body += `<path d="M${W},0 L${W*0.78},0 Q${W*0.95},${H*0.4} ${W*0.88},${H} L${W},${H} Z" fill="${deep}" opacity="0.85"/>`;
+      const spots = [[80,150],[70,420],[320,190],[330,460],[190,90],[150,600],[260,610],[60,270]];
+      spots.forEach((p,i)=>{
+        const s = rr(rng,20,40);
+        body += svgCrystal(p[0], p[1], s, rr(rng,-18,18), acc2, acc, acc);
+      });
+      for(let i=0;i<16;i++){
+        body += `<circle cx="${rr(rng,0,W).toFixed(1)}" cy="${rr(rng,0,H).toFixed(1)}" r="${rr(rng,1,2.4).toFixed(1)}" fill="${acc2}" opacity="${rr(rng,0.3,0.8).toFixed(2)}"/>`;
+      }
+    } else if(loc.id==="gold"){
+      for(let i=0;i<5;i++){
+        body += svgVein(rng, rr(rng,20,W-20), rr(rng,0,H*0.3), rr(rng,1.0,2.1), rr(rng,220,340), 6, acc, acc2);
+      }
+      for(let i=0;i<6;i++){
+        const x=rr(rng,30,W-30), y=rr(rng,H*0.75,H-30), r=rr(rng,5,10);
+        body += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${acc}" stroke="#5c3d10" stroke-width="1.4"/>
+          <circle cx="${(x-r*0.3).toFixed(1)}" cy="${(y-r*0.3).toFixed(1)}" r="${(r*0.35).toFixed(1)}" fill="#fff5d6" opacity="0.8"/>`;
+      }
+    } else if(loc.id==="ice"){
+      const topXs=[40,95,150,210,270,330,375];
+      topXs.forEach(x=> body += svgIcicle(x+rr(rng,-8,8), 0, rr(rng,70,170), rr(rng,10,20), true));
+      const botXs=[60,130,200,260,330];
+      botXs.forEach(x=> body += svgIcicle(x+rr(rng,-8,8), H, rr(rng,60,140), rr(rng,12,22), false));
+      for(let i=0;i<5;i++){
+        body += svgCrack(rng, rr(rng,40,W-40), rr(rng,H*0.25,H*0.75), 4, 26, acc2, 1.6);
+      }
+      for(let i=0;i<20;i++){
+        body += `<circle cx="${rr(rng,0,W).toFixed(1)}" cy="${rr(rng,0,H).toFixed(1)}" r="${rr(rng,0.8,1.8).toFixed(1)}" fill="#fff" opacity="${rr(rng,0.3,0.7).toFixed(2)}"/>`;
+      }
+    } else if(loc.id==="lava"){
+      body += `<ellipse cx="${W*0.5}" cy="${H}" rx="${W*0.7}" ry="${H*0.28}" fill="url(#lavaPool)" opacity="0.85"/>`;
+      for(let i=0;i<7;i++){
+        body += svgCrack(rng, rr(rng,20,W-20), rr(rng,0,H*0.7), 5, 30, acc, 3.2);
+      }
+      for(let i=0;i<10;i++){
+        const x=rr(rng,0,W), y=rr(rng,H*0.55,H);
+        body += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr(rng,1.4,3).toFixed(1)}" fill="${acc2}" opacity="${rr(rng,0.5,0.95).toFixed(2)}" filter="url(#artGlow)"/>`;
+      }
+    } else if(loc.id==="space"){
+      body += svgStarField(rng, W, H, 70);
+      body += svgAsteroid(rng, W*0.68, H*0.62, 105);
+      body += svgAsteroid(rng, W*0.14, H*0.22, 40);
+      body += `<circle cx="${W*0.68}" cy="${H*0.62}" r="130" fill="${acc}" opacity="0.12" filter="url(#artGlow)"/>`;
+    }
+
+    scene = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">${defs}${body}</svg>`;
+    artCache[loc.id] = scene;
+    return scene;
+  }
+
+  function svgToDataUrl(svgString){
+    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+  }
+
+  // ---------- ICON ART (replaces tiny 16x16 pixel-sprite placeholders) ----------
+  const PICKAXE_ICON_URL = svgToDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="hg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#5c4026"/><stop offset="100%" stop-color="#2c1c10"/></linearGradient>
+      <linearGradient id="hg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9aa0a8"/><stop offset="100%" stop-color="#4a4e56"/></linearGradient>
+    </defs>
+    <rect x="42" y="30" width="10" height="64" rx="2" fill="url(#hg1)" stroke="#150e08" stroke-width="2"/>
+    <path d="M8,30 Q46,4 90,28 L82,44 Q46,26 16,46 Z" fill="url(#hg2)" stroke="#12100e" stroke-width="3" stroke-linejoin="round"/>
+  </svg>`);
+
+  const gemIconCache = {};
+  function gemIconUrl(loc){
+    if(gemIconCache[loc.id]) return gemIconCache[loc.id];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+      <defs><filter id="artGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+      <ellipse cx="20" cy="21" rx="15" ry="12" fill="${loc.accent}" opacity="0.4" filter="url(#artGlow)"/>
+      ${svgCrystal(20, 20, 15, 0, loc.accent2, loc.accent, loc.accent)}
+    </svg>`;
+    const url = svgToDataUrl(svg);
+    gemIconCache[loc.id] = url;
+    return url;
+  }
+
+  const minerIconCache = {};
+  function minerIconUrl(rarity){
+    if(minerIconCache[rarity]) return minerIconCache[rarity];
+    const colors = { common:"#7fae63", rare:"#2f8fd4", epic:"#a13fd4", legendary:"#f0a92f" };
+    const c = colors[rarity] || colors.common;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+      <path d="M20,15 L28,35 L12,35 Z" fill="${c}" stroke="#150e08" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="20" cy="11" r="6" fill="#e0b58a" stroke="#150e08" stroke-width="1.4"/>
+      <path d="M13,9 A7,7 0 0 1 27,9 L27,10.5 L13,10.5 Z" fill="#8a8478" stroke="#150e08" stroke-width="1.2"/>
+      <circle cx="20" cy="8.5" r="1.6" fill="#ffe27a"/>
+      <line x1="27" y1="19" x2="35" y2="10" stroke="#5c4026" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M31,7 L37,9 L33,14 Z" fill="#9aa0a8" stroke="#150e08" stroke-width="1"/>
+    </svg>`;
+    const url = svgToDataUrl(svg);
+    minerIconCache[rarity] = url;
+    return url;
+  }
+
   // ---------- DOM ----------
   const resourceEl = document.getElementById("resource-amount");
   const resourceIconEl = document.getElementById("resource-icon");
@@ -885,7 +1076,6 @@ const SOUNDS = {
   const portalEl = document.getElementById("portal");
   const rockTextureImg = document.getElementById("rockTextureImg");
   const chestEl = document.getElementById("chest");
-  const grainEl = document.getElementById("grain");
   const oreAccent1 = document.getElementById("oreAccent1");
   const oreAccent2 = document.getElementById("oreAccent2");
   const torchLeft = document.getElementById("torchLeft");
@@ -910,20 +1100,6 @@ const SOUNDS = {
     mainEl.addEventListener("pointerleave", ()=>{ pickaxeCursorEl.style.opacity = "0"; });
   }
 
-  function buildGrainTile(){
-    const size=128;
-    const rng = mulberry32(1337);
-    const cvs=document.createElement('canvas'); cvs.width=size; cvs.height=size;
-    const ctx=cvs.getContext('2d');
-    const img=ctx.createImageData(size,size);
-    for(let i=0;i<size*size;i++){
-      const v = Math.floor(rng()*255);
-      img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=v; img.data[i*4+3]=255;
-    }
-    ctx.putImageData(img,0,0);
-    grainEl.style.setProperty('--grain-tile', `url(${cvs.toDataURL('image/png')})`);
-  }
-
   function showToast(msg){
     toastEl.textContent = msg;
     toastEl.classList.add("show");
@@ -937,25 +1113,26 @@ const SOUNDS = {
     rockWrap.style.setProperty("--accent2", loc.accent2);
     rockWrap.style.setProperty("--rockBase", loc.rockBase);
     rockWrap.style.setProperty("--rockDeep", loc.rockDeep);
-    // reuse the same procedural texture generator at a larger, tiled size for
-    // the whole scene backdrop, layered under the vignette/candlelight glow
-    const sceneTexture = generateLocationTexture(loc, 320);
-    document.body.style.backgroundImage =
-      `radial-gradient(ellipse at 50% 0%, ${hexToRgba(loc.bg[0], 0.72)}, ${hexToRgba(loc.bg[1], 0.9)}), url(${sceneTexture})`;
-    document.body.style.backgroundRepeat = "no-repeat, repeat";
-    document.body.style.backgroundSize = "cover, 320px 320px";
+    // hand-authored illustrated scene (crystals/veins/icicles/cracks/asteroid),
+    // not a procedural noise tile — see generateLocationArt(). The ore itself
+    // still uses generateLocationTexture() below for its own material grain.
+    const sceneArt = generateLocationArt(loc);
+    document.body.style.backgroundImage = `url(${svgToDataUrl(sceneArt)})`;
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
     locLabelEl.textContent = "📍 " + loc.name;
     locTaglineEl.textContent = "«" + loc.tagline + "»";
     resourceIconEl.textContent = loc.icon;
     rockTextureImg.setAttribute("href", generateLocationTexture(loc, 220));
-    oreAccent1.src = SPRITES[loc.ore];
-    oreAccent2.src = SPRITES[loc.ore];
+    oreAccent1.src = gemIconUrl(loc);
+    oreAccent2.src = gemIconUrl(loc);
   }
 
   function updateHeader(){
     resourceEl.textContent = fmt(state.resources);
     const ps = perSecond();
-    perSecEl.textContent = ps > 0 ? `${fmtPrecise(ps)} в секунду` : "Забой ждёт руки";
+    perSecEl.textContent = ps > 0 ? `${fmtPrecise(ps)} в секунду` : "Найми шахтёра, чтобы добыча шла сама";
     muteBtn.textContent = state.muted ? "🔇" : "🔊";
   }
 
@@ -964,7 +1141,7 @@ const SOUNDS = {
     const count = unlockedCount();
     if(count > seenUnlockedCount){
       for(let i=seenUnlockedCount; i<count; i++){
-        showToast("🕯 Открыт новый забой: " + LOCATIONS[i].name + "!");
+        showToast("🕯 Открыта новая локация: " + LOCATIONS[i].name + "!");
       }
       playUnlock();
       seenUnlockedCount = count;
@@ -1023,7 +1200,7 @@ const SOUNDS = {
         <div class="card-desc">Нужно добыть ${fmt(loc.unlockAt)} 💎 (у тебя ${fmt(state.totalEarned)})</div>
         <div class="loc-progress"><div class="loc-progress-fill" style="width:${pct}%"></div></div>`;
     } else {
-      const desc = index===0 ? "Стартовый забой" : "Постоянный бонус к добыче: +15%";
+      const desc = index===0 ? "Стартовая локация" : "Постоянный бонус к добыче: +15%";
       bodyHtml = `<div class="card-desc">${desc}</div>`;
     }
 
@@ -1058,7 +1235,7 @@ const SOUNDS = {
     const cost = costFor(clickUpgrade.baseCost, clickUpgrade.costMult, level);
     const rarity = toolRarity(level);
     panel.appendChild(buildMinerCard({
-      icon: `<img src="${SPRITES.pickaxe_a}" style="width:26px;height:26px;image-rendering:pixelated;">`,
+      icon: `<img src="${PICKAXE_ICON_URL}" style="width:28px;height:28px;">`,
       name: clickUpgrade.name, flavor: clickUpgrade.flavor,
       desc: `Сила удара: ${fmtPrecise(clickPower())} 💎 за раз`,
       levelLabel: `Уровень ${level}`, level, cost, canAfford: state.resources >= cost, rarity,
@@ -1083,10 +1260,11 @@ const SOUNDS = {
     const div = document.createElement("div");
     div.className = "card rarity-" + def.rarity + (found ? "" : " disabled locked");
     const rollsText = found ? owned.map(m=> Math.round(m.rate/def.rate*100)+"%").join(", ") : "";
+    const iconStyle = found ? `style="background-image:url(${minerIconUrl(def.rarity)});background-size:70%;background-position:center 55%;background-repeat:no-repeat;"` : "";
     div.innerHTML = `
       <div class="wax-seal">${r.seal}</div>
       <div class="card-top">
-        <div class="card-icon">${found ? def.icon : "❔"}</div>
+        <div class="card-icon" ${iconStyle}>${found ? def.icon : "❔"}</div>
         <div class="card-head">
           <div class="card-name">${found ? def.name : "???"}</div>
           <div class="card-rarity-label">${r.label}</div>
@@ -1361,12 +1539,8 @@ const SOUNDS = {
       const fig = document.createElement("img");
       fig.className = "reel-figure";
       withImgFallback(fig);
-      fig.src = SPRITES[Math.random()<0.5 ? "figure_dark" : "figure_hood"];
-      const emoji = document.createElement("span");
-      emoji.className = "reel-emoji";
-      emoji.textContent = d.icon;
+      fig.src = minerIconUrl(d.rarity);
       item.appendChild(fig);
-      item.appendChild(emoji);
       reelTrack.appendChild(item);
     });
 
@@ -1508,7 +1682,7 @@ const SOUNDS = {
       const gain = perSecond()*seconds;
       state.resources += gain;
       state.totalEarned += gain;
-      if(gain >= 1) showToast("Пока тебя не было, из забоя вынесли +" + fmt(gain) + " 💎");
+      if(gain >= 1) showToast("Пока тебя не было, шахтёры добыли +" + fmt(gain) + " 💎");
     }
     localStorage.setItem(tsKey, String(now));
   }
@@ -1518,7 +1692,6 @@ const SOUNDS = {
   });
 
   // ---------- INIT ----------
-  buildGrainTile();
   load();
   applyOfflineProgress();
   seenUnlockedCount = unlockedCount();
