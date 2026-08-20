@@ -9,6 +9,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<!-- Yandex Games SDK: /sdk.js only resolves when this build is hosted on
+     Yandex's servers (relative path, per their upload docs). Opened
+     standalone or from any other host, the script 404s harmlessly and
+     initYandexSDK() below no-ops — the game runs the same either way. -->
+<script>
+  function initYandexSDK(){
+    if(typeof YaGames === "undefined") return;
+    YaGames.init().then(function(ysdk){
+      window.ysdk = ysdk;
+      if(ysdk.features && ysdk.features.LoadingAPI){
+        ysdk.features.LoadingAPI.ready();
+      }
+    }).catch(function(){});
+  }
+</script>
+<script async src="/sdk.js" onload="initYandexSDK()"></script>
 <style>
   :root{
     --wood-dark:#2b1810;
