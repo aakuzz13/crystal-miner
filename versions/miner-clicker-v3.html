@@ -15,43 +15,80 @@
      initYandexSDK() below no-ops — the game runs the same either way. -->
 <script>
   function initYandexSDK(){
+    if(window.__yandexSDKInitStarted) return; // onload attribute + the JS-level
+    window.__yandexSDKInitStarted = true;     // listener below could both fire
     if(typeof YaGames === "undefined") return;
     YaGames.init().then(function(ysdk){
       window.ysdk = ysdk;
-      // Platform requirement 2.14: query the player's language from the SDK
-      // instead of assuming one. All game text is Russian-only for now (no
-      // translated strings exist yet), so this doesn't change what's shown —
-      // it just stops hardcoding <html lang> and makes the detected value
-      // available (window.__yandexLang) for real localization later.
-      var lang = ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang;
-      if(lang){
-        window.__yandexLang = lang;
-        document.documentElement.setAttribute("lang", lang);
-      }
-      if(ysdk.features && ysdk.features.LoadingAPI){
-        ysdk.features.LoadingAPI.ready();
-      }
-      // Platform requirement 1.19.2 (Game Ready API): the game is playable
-      // immediately once LoadingAPI.ready() fires, so gameplay "starts" here;
-      // the main script also calls this again defensively once it boots, and
-      // pairs it with GameplayAPI.stop() around tab-hidden/ad moments.
-      if(ysdk.features && ysdk.features.GameplayAPI){
-        ysdk.features.GameplayAPI.start();
-      }
+      // Each guarded call below runs in its own try/catch: one SDK method
+      // throwing (unexpected shape, missing feature on some runtime) must
+      // never silently skip the sibling calls after it — that was a real
+      // risk with everything living in one unguarded .then() body.
+
+      // Platform requirement 2.14: query the player's language from the SDK,
+      // per docs' own example (`ysdk.environment.i18n.lang`, read right after
+      // init resolves). All game text is Russian-only for now (no translated
+      // strings exist yet), so this doesn't change what's shown — it just
+      // stops hardcoding <html lang> and makes the detected value available
+      // (window.__yandexLang) for real localization later.
+      try{
+        var lang = ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang;
+        if(lang){
+          window.__yandexLang = lang;
+          document.documentElement.setAttribute("lang", lang);
+        }
+      }catch(e){}
+
+      // Platform requirement 1.19.2 (Game Ready API): LoadingAPI.ready() is
+      // the ONLY place GameplayAPI.start() is fired too — a single call site,
+      // called exactly once here, right as the game becomes playable. Do not
+      // add a second start() call anywhere else (an earlier build called it
+      // again from the main script's own boot sequence; two start()s with no
+      // stop() between them is itself the kind of GRA misuse this platform
+      // requirement flags — the main script's graStart()/graStop() only ever
+      // run afterwards, paired around actual pause/resume: tab visibility and
+      // ad playback).
+      try{
+        if(ysdk.features && ysdk.features.LoadingAPI){
+          ysdk.features.LoadingAPI.ready();
+        }
+      }catch(e){}
+      try{
+        if(ysdk.features && ysdk.features.GameplayAPI){
+          ysdk.features.GameplayAPI.start();
+        }
+      }catch(e){}
+
       // Platform requirement 1.9: fetch the player handle so the main game
       // script can read/write progress through ysdk.getPlayer() instead of
       // (only) localStorage. scopes:false skips the personal-data consent
       // prompt — getData/setData works for anonymous players too. Dispatched
       // as a DOM event because this <head> script runs before the game's own
       // <script> IIFE at the bottom of <body> even exists yet.
-      ysdk.getPlayer({ scopes: false }).then(function(player){
-        window.__yandexPlayer = player;
-        window.dispatchEvent(new Event("yandex-player-ready"));
-      }).catch(function(){});
+      try{
+        ysdk.getPlayer({ scopes: false }).then(function(player){
+          window.__yandexPlayer = player;
+          window.dispatchEvent(new Event("yandex-player-ready"));
+        }).catch(function(){});
+      }catch(e){}
     }).catch(function(){});
   }
 </script>
-<script async src="/sdk.js" onload="initYandexSDK()"></script>
+<script async src="/sdk.js" onload="initYandexSDK()" onerror="void 0"></script>
+<script>
+  // Belt-and-braces alongside the onload= attribute above: if this exact
+  // script element already finished loading by the time this runs (async
+  // scripts can race the parser), or if the inline onload attribute is ever
+  // stripped by a hosting environment's CSP, this JS-level listener still
+  // fires initYandexSDK() — initYandexSDK() itself is idempotent (guarded by
+  // window.__yandexSDKInitStarted above) so both call paths existing is safe.
+  (function(){
+    var s = document.currentScript && document.currentScript.previousElementSibling;
+    if(s && s.tagName === "SCRIPT"){
+      s.addEventListener("load", function(){ if(typeof initYandexSDK === "function") initYandexSDK(); });
+    }
+  })();
+</script>
 <style>
   :root{
     --wood-dark:#2b1810;
@@ -80,6 +117,14 @@
     transition:background 0.7s ease;
     font-family:'IM Fell English', Georgia, serif;
     color:var(--parchment);
+    /* Platform requirement 1.6: rapid/repeated taps on the ore and UI must
+       never select text or trigger iOS's long-press callout (copy/lookup)
+       menu. contextmenu.preventDefault() (in the script below) only blocks
+       the right-click/long-press *menu* — it does nothing about click-drag
+       or double-tap text selection, which is a separate browser behavior
+       governed by user-select. Both are needed together. */
+    -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
   }
   #app{ display:flex; flex-direction:column; height:100%; position:relative; }
 
@@ -118,7 +163,13 @@
      vertical-centered like #chest, so it can never collide with header
      content at any viewport width. */
   #ad-btn{
-    position:fixed; top:50%; left:min(1.5vw,6px); right:auto;
+    /* absolute *within `main`* (which is position:relative), not fixed to
+       the viewport — fixed-to-viewport top:50% assumes main's vertical
+       center matches the whole page's, which breaks (this button lands on
+       top of the tab nav / panel) the moment header+tabs+panel eat a bigger
+       share of a short/landscape/resized viewport. Platform requirement
+       1.10.3 flagged exactly this class of overlap for #chest/#ad-btn. */
+    position:absolute; top:50%; left:min(1.5vw,6px); right:auto;
     transform:translateY(-50%); z-index:60; font-size:1.1rem;
   }
   .torch{ position:absolute; top:9px; width:24px; height:24px; image-rendering:pixelated; pointer-events:none;
@@ -150,7 +201,11 @@
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   /* MAIN */
-  main{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; }
+  /* overflow:hidden so #chest/#gacha-overlay/#ad-btn (all position:absolute
+     within main now, see their own comments) clip to this region instead of
+     spilling into the header/tab-nav when main gets squeezed short — a clipped
+     icon beats one drawn on top of unrelated header/tab content. */
+  main{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; overflow:hidden; }
   .ambient-particle{ position:absolute; border-radius:50%; pointer-events:none; z-index:0; animation:ambientFloat linear forwards; }
   @keyframes ambientFloat{
     0%{ transform:translateY(10px) scale(0.7); opacity:0; }
@@ -240,7 +295,9 @@
   /* CHEST — appears beside the ore (sized/positioned to clear #rock-wrap's
      own min(66vw,250px) box at any viewport width), never blocks clicking it */
   #chest{
-    position:fixed; right:min(1.5vw,6px); top:50%; width:min(15vw,72px); height:min(12.75vw,61px);
+    /* absolute within `main`, not fixed to the viewport — see #ad-btn's
+       comment above for why (platform requirement 1.10.3). */
+    position:absolute; right:min(1.5vw,6px); top:50%; width:min(15vw,72px); height:min(12.75vw,61px);
     z-index:65; cursor:pointer;
     filter:drop-shadow(0 6px 14px rgba(0,0,0,.65));
     animation:chestBob .8s ease-in-out infinite, chestFadeIn .35s ease-out;
@@ -354,7 +411,10 @@
      wrapper stays pointer-events:none so clicks everywhere else (including
      most of #rock-wrap) pass through; only .gacha-card itself catches them. */
   #gacha-overlay{
-    position:fixed; right:min(1.5vw,6px); top:50%; transform:translateY(-50%);
+    /* absolute within `main`, not fixed to the viewport — see #ad-btn's
+       comment above for why (platform requirement 1.10.3). Moved into
+       <main> in the markup too, so this has a positioning context. */
+    position:absolute; right:min(1.5vw,6px); top:50%; transform:translateY(-50%);
     z-index:70; pointer-events:none; opacity:0; transition:opacity .25s ease;
   }
   #gacha-overlay.show{ opacity:1; }
@@ -416,6 +476,25 @@
     #chest{ animation:none; }
     #legendary-flash.flash{ animation:none; }
   }
+
+  /* Compact header on short viewports (phone landscape, a resized/short
+     desktop window, or a device's on-screen keyboard/toolbar eating vertical
+     space) — the ore's own `main{overflow:hidden}` already keeps #chest/
+     #ad-btn/#gacha-overlay from spilling into the header or tab nav no
+     matter how squeezed `main` gets, but reclaiming header height here means
+     `main` doesn't have to squeeze nearly as hard in the first place, so the
+     ore itself stays a reasonable clickable size too (platform requirement
+     1.10.3 — flagged specifically for iOS, desktop resize, mobile
+     orientation change and exiting fullscreen, which are really the same
+     root cause: a short viewport height). */
+  @media (max-height:480px){
+    header{ padding:5px 16px 5px; }
+    .loc-tagline{ display:none; }
+    .resource-panel{ margin-top:3px; padding:3px 18px 4px; }
+    .resource-counter{ font-size:1.3rem; }
+    .per-sec{ font-size:0.7rem; }
+    .torch{ display:none; }
+  }
 </style>
 </head>
 <body>
@@ -425,7 +504,6 @@
   <div id="toast"></div>
   <header>
     <button class="icon-btn" id="mute-btn" aria-label="Звук">🔊</button>
-    <button class="icon-btn" id="ad-btn" aria-label="Бонус за рекламу" title="Посмотреть рекламу за бонус">📺</button>
     <img class="torch torch-left" id="torchLeft" alt="">
     <img class="torch torch-right" id="torchRight" alt="">
     <div class="loc-label" id="loc-label">📍 Пещера кристаллов</div>
@@ -522,6 +600,24 @@
         <circle cx="20" cy="19" r="1.6" fill="#c99a4a"/>
       </svg>
     </div>
+    <button class="icon-btn" id="ad-btn" aria-label="Бонус за рекламу" title="Посмотреть рекламу за бонус">📺</button>
+    <div id="gacha-overlay">
+      <div class="gacha-card">
+        <div class="gacha-title">Найден сундук!</div>
+        <div class="reel-viewport">
+          <div class="reel-track" id="reel-track"></div>
+          <div class="reel-marker"></div>
+        </div>
+        <div class="gacha-result hidden" id="gacha-result">
+          <div class="result-seal" id="result-seal"></div>
+          <div class="result-name" id="result-name"></div>
+          <div class="result-rarity" id="result-rarity"></div>
+          <div class="result-stat" id="result-stat"></div>
+          <div class="result-roll" id="result-roll"></div>
+        </div>
+        <button class="gacha-close hidden" id="gacha-close">Забрать</button>
+      </div>
+    </div>
   </main>
 
   <nav>
@@ -531,24 +627,6 @@
   </nav>
 
   <div id="panel"></div>
-</div>
-
-<div id="gacha-overlay">
-  <div class="gacha-card">
-    <div class="gacha-title">Найден сундук!</div>
-    <div class="reel-viewport">
-      <div class="reel-track" id="reel-track"></div>
-      <div class="reel-marker"></div>
-    </div>
-    <div class="gacha-result hidden" id="gacha-result">
-      <div class="result-seal" id="result-seal"></div>
-      <div class="result-name" id="result-name"></div>
-      <div class="result-rarity" id="result-rarity"></div>
-      <div class="result-stat" id="result-stat"></div>
-      <div class="result-roll" id="result-roll"></div>
-    </div>
-    <button class="gacha-close hidden" id="gacha-close">Забрать</button>
-  </div>
 </div>
 
 <script>
@@ -1933,7 +2011,12 @@ const SOUNDS = {
   renderPanel();
   startAmbient();
   preloadAudio();
-  graStart();
+  // No graStart() here: GameplayAPI.start()'s one and only call site is
+  // initYandexSDK() in <head> (fired once, right as the game becomes
+  // playable) — see the comment there for why a second start() call from
+  // here was itself the kind of Game Ready API misuse platform requirement
+  // 1.19.2 flags. graStart()/graStop() below stay in play only for genuine
+  // pause/resume (tab visibility, ad playback).
   if(window.__yandexPlayer) syncCloudSave();
 })();
 </script>
