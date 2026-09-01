@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0705">
-<title>Кристальная Шахта — Гримуар Забоя</title>
+<title>Симулятор шахтера</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
@@ -846,7 +846,7 @@ const SOUNDS = {
   function preloadAudio(){
     Object.keys(SOUNDS).forEach(name=> loadSample(name, SOUNDS[name]));
   }
-  async function playSample(name, {rate=1, gain=0.5, dry=0.75}={}){
+  async function playSample(name, {rate=1, gain=0.5, dry=0.75, attack=0.012, lowpass=null}={}){
     if(state.muted) return;
     const buf = await sampleCache[name];
     if(!buf) return;
@@ -856,8 +856,20 @@ const SOUNDS = {
     src.buffer = buf;
     src.playbackRate.value = rate * (0.96 + Math.random()*0.08);
     const g = ctx.createGain();
-    g.gain.value = gain;
-    src.connect(g);
+    // A hard g.gain.value=gain step reads as a percussive "spike" on samples
+    // with a sharp transient (flagged by platform moderation as a "резкий
+    // звук" specifically on chest-open) — a short linear ramp from 0 softens
+    // the onset on every sample without audibly changing its character.
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(gain, ctx.currentTime+attack);
+    let node = src;
+    if(lowpass){
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = lowpass;
+      src.connect(lp);
+      node = lp;
+    }
+    node.connect(g);
     g.connect(ctx.destination);
     const wetGain = ctx.createGain();
     wetGain.gain.value = gain*(1-dry);
@@ -881,9 +893,14 @@ const SOUNDS = {
     osc.stop(ctx.currentTime+start+dur+0.03);
   }
   function playMiningHit(){ playSample("hit"+Math.floor(Math.random()*5), {gain:0.55}); }
-  function playChestDrop(){ playSample("chestDrop", {gain:0.5}); }
-  function playChestOpen(){ playSample(Math.random()<0.5?"chestOpen0":"chestOpen1", {gain:0.55}); }
-  function playChestClose(){ playSample("chestClose", {gain:0.4}); }
+  function playChestDrop(){ playSample("chestDrop", {gain:0.4, attack:0.02, lowpass:5000}); }
+  // Moderation flagged this specific sound as too sharp/startling (bumped
+  // the age rating to 6+ over it) — lower gain, a softer attack, and a
+  // lowpass to take the edge off the sample's own transient, on top of
+  // playSample()'s general onset-ramp above. Kept at 6+ regardless per
+  // product decision; this is about not being jarring, not chasing 0+.
+  function playChestOpen(){ playSample(Math.random()<0.5?"chestOpen0":"chestOpen1", {gain:0.4, attack:0.025, lowpass:4200}); }
+  function playChestClose(){ playSample("chestClose", {gain:0.3, attack:0.02, lowpass:4500}); }
   function playTick(){ playSample("tick"+Math.floor(Math.random()*3), {gain:0.35, rate:1+Math.random()*0.15}); }
   function playConfirm(){ playSample("confirm", {gain:0.5}); }
   function playLegendaryBell(){ playSample(Math.random()<0.5?"bell0":"bell1", {gain:0.6, dry:0.5}); }
